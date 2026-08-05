@@ -125,6 +125,8 @@ Coverage counts should include at least the diagnostics listed in section 7.
 
 ## 6. Relation contract
 
+### Read-model relation behavior
+
 Initial allowed relation types:
 
 - `supports`
@@ -143,6 +145,41 @@ Rules:
 - Dangling targets create diagnostics, not hard failures.
 - Unknown relation types should be diagnostics in the read-only MVP, not fatal errors.
 - Weak similarity must not be silently promoted to authoritative semantics.
+
+These rules describe tolerant interpretation of existing Concept Core metadata.
+They do not define a write contract.
+
+### Authored relation contract `semantic_relation.v1`
+
+Stage F1 adds a pure validator for future exact opt-in authored relations. Each
+authored relation has exactly these fields:
+
+```json
+{
+  "contract_version": "semantic_relation.v1",
+  "type": "supports",
+  "target": "concept:beta",
+  "evidence_ref": "memory:source-alpha"
+}
+```
+
+Validation rules:
+
+- `contract_version` must equal `semantic_relation.v1`;
+- `type` must be one of the seven allowed relation types listed above;
+- `target` must be a non-empty, trimmed string no longer than 256 characters;
+- `evidence_ref` must be a non-empty, trimmed opaque string no longer than 512 characters;
+- a node may author at most 64 relations;
+- additional or generated read-model fields are rejected;
+- duplicate `(type, target, evidence_ref)` tuples are rejected;
+- a relation cannot target its own `source_concept_id`;
+- dangling or forward targets are accepted without lookup;
+- validation does not normalize input, perform I/O, or mutate the input payload.
+
+Authored relations are explicit outbound declarations. Generated relation IDs,
+resolved node IDs, direction, status, confidence, evidence-ref collections,
+relation source, metadata, and weak derived relations belong to the read model
+and are not accepted authored fields.
 
 ## 7. Evidence and diagnostics contract
 
@@ -226,9 +263,20 @@ change `PlannerRuntime`, API routes, storage/schema behavior, replay, or default
 runtime execution. Automatic mesh construction and any planner decision use
 remain separately approval-gated.
 
-### Stage F - Strict relation writer
+### Stage F - Versioned relation authoring contract
 
-Only after relation schema contract and RED/GREEN smokes. It must preserve legacy `/memory/add` behavior.
+Stage F1 is implemented by `ai_os/semantic_relation_contract.py` and verified by
+`development/scripts/smoke_semantic_relation_contract.py`.
+
+F1 validates and returns a fresh canonical copy of an in-memory
+`semantic_relation.v1` relation list. It has no writer integration, target
+lookup, API route, storage mutation, migration, backfill, reverse-edge creation,
+or runtime/planner/dispatch effect. Existing permissive Concept Core relation
+handling and legacy `/memory/add` behavior remain unchanged.
+
+A future Stage F2 writer integration requires a separate contract, RED/GREEN
+smokes, and explicit approval. It must be exact opt-in and preserve legacy
+`/memory/add` behavior.
 
 ## 9. Safety invariants
 
@@ -251,6 +299,9 @@ Future verification expectations:
 - prove the advisory adapter has no runtime, planner, storage, or network imports;
 - prove Stage E2A changes only explicit direct-plan output and leaves default `run_cycle()` unchanged;
 - prove planner calls and serialization remain free of `semantic_mesh_advisory`;
+- prove Stage F1 accepts only exact `semantic_relation.v1` authored payloads;
+- prove Stage F1 performs no target lookup, file writes, runtime mutation, or input mutation;
+- keep the Stage F1 validator import allowlist limited to `__future__`;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -266,5 +317,6 @@ Rollback by stage:
 - Library-only: remove the new module and smoke, then rerun targeted verification.
 - API preview: remove the route and smoke, then verify legacy routes and status surfaces.
 - Planner/Cognitive adapter: remove the advisory adapter and opt-in `CognitiveLoop.plan(...)` wiring, then verify continuity smokes.
+- Relation contract: remove the pure validator and focused smoke, then revert the Stage F1 documentation update.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
