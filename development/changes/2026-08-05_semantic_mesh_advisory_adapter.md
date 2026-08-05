@@ -11,7 +11,17 @@ Implemented Stage E1 as a pure library-only advisory adapter:
 
 The adapter translates an already-built `SemanticMeshIndex` and an optional plan
 mapping into aggregate-only coverage, diagnostic, relation evidence-source,
-count-only plan, and attention-signal data.
+aggregate plan, and attention-signal data. The bounded scalar `focus_area` is
+allowed; plan collections are represented only as counts.
+
+## Corrective review follow-up
+
+- added explicit `malformed_only` coverage so malformed records are not reported
+  as `legacy_only`;
+- kept `legacy_only` exclusive to legacy blocks without strict or malformed
+  blocks and classified other non-empty combinations as `mixed`;
+- added a malformed-only smoke fixture;
+- replaced the import denylist with an exact allowlist and boundary probes.
 
 ## Scope
 

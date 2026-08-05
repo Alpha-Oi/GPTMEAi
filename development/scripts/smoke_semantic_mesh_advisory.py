@@ -34,14 +34,20 @@ FORBIDDEN_PAYLOAD_KEYS = {
     "content",
     "context",
 }
-FORBIDDEN_ADAPTER_IMPORTS = {
+ALLOWED_ADAPTER_IMPORTS = {
+    "__future__",
+    "ai_os.semantic_mesh",
+    "collections.abc",
+    "dataclasses",
+    "typing",
+}
+REJECTED_IMPORT_PROBES = {
     "core.memory_engine",
-    "planning.runtime",
-    "execution.runtime",
-    "execution.snapshots",
+    "execution.ledger",
+    "http.client",
+    "planning.policy",
     "scripts.runtime_store",
-    "requests",
-    "urllib",
+    "socket",
 }
 
 
@@ -85,12 +91,8 @@ def imported_modules(source: str) -> set[str]:
     return modules
 
 
-def has_forbidden_import(modules: set[str]) -> bool:
-    return any(
-        module == forbidden or module.startswith(f"{forbidden}.")
-        for module in modules
-        for forbidden in FORBIDDEN_ADAPTER_IMPORTS
-    )
+def unapproved_imports(modules: set[str]) -> set[str]:
+    return modules - ALLOWED_ADAPTER_IMPORTS
 
 
 def run_smoke(temp_root: Path) -> dict[str, Any]:
@@ -135,12 +137,47 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
         ),
         plan={"focus_area": "memory"},
     ).to_dict()
+    malformed_advisory = build_semantic_mesh_advisory(
+        build_semantic_mesh(
+            [
+                {
+                    "id": "malformed-only",
+                    "text": "Malformed-only advisory coverage fixture.",
+                    "metadata": {"concept_core": {}},
+                }
+            ]
+        ),
+        plan={"focus_area": "semantic_mesh"},
+    ).to_dict()
+    strict_advisory = build_semantic_mesh_advisory(
+        build_semantic_mesh([fixture_blocks()[2]]),
+        plan={"focus_area": "semantic_mesh"},
+    ).to_dict()
+    mixed_non_strict_advisory = build_semantic_mesh_advisory(
+        build_semantic_mesh(
+            [
+                {
+                    "id": "legacy-mixed",
+                    "text": "Legacy record in a non-strict mixed coverage fixture.",
+                },
+                {
+                    "id": "malformed-mixed",
+                    "text": "Malformed record in a non-strict mixed coverage fixture.",
+                    "metadata": {"concept_core": {}},
+                },
+            ]
+        ),
+        plan={"focus_area": "semantic_mesh"},
+    ).to_dict()
 
     project_runtime_after = file_metadata(project_runtime_file)
     payload_keys = nested_keys(advisory)
     signal_codes = [str(item.get("code")) for item in advisory.get("attention_signals", [])]
     empty_signal_codes = [str(item.get("code")) for item in empty_advisory.get("attention_signals", [])]
     legacy_signal_codes = [str(item.get("code")) for item in legacy_advisory.get("attention_signals", [])]
+    malformed_signal_codes = [
+        str(item.get("code")) for item in malformed_advisory.get("attention_signals", [])
+    ]
     relation_evidence_counts = dict(advisory.get("relation_evidence_counts") or {})
     plan_summary = dict(advisory.get("plan_summary") or {})
     adapter_source = adapter_file.read_text(encoding="utf-8")
@@ -196,9 +233,24 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             legacy_advisory.get("coverage_state") == "legacy_only"
             and "strict_concept_coverage_absent" in legacy_signal_codes
         ),
-        "adapter_has_no_runtime_planner_or_network_imports": not has_forbidden_import(
+        "malformed_only_mesh_is_nonfatal": (
+            malformed_advisory.get("coverage_state") == "malformed_only"
+            and "strict_concept_coverage_absent" in malformed_signal_codes
+            and "malformed_concept_metadata" in malformed_signal_codes
+        ),
+        "strict_only_mesh_is_nonfatal": (
+            strict_advisory.get("coverage_state") == "strict_only"
+        ),
+        "mixed_non_strict_mesh_is_nonfatal": (
+            mixed_non_strict_advisory.get("coverage_state") == "mixed"
+        ),
+        "adapter_has_no_runtime_planner_or_network_imports": not unapproved_imports(
             adapter_imports
         ),
+        "strict_import_allowlist_rejects_boundary_probes": unapproved_imports(
+            REJECTED_IMPORT_PROBES
+        )
+        == REJECTED_IMPORT_PROBES,
         "project_runtime_file_unchanged": project_runtime_before == project_runtime_after,
         "temp_root_marker_written": marker_file.exists(),
     }
@@ -212,6 +264,8 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             "signal_codes": signal_codes,
             "relation_evidence_counts": relation_evidence_counts,
             "plan_summary": plan_summary,
+            "adapter_imports": sorted(adapter_imports),
+            "unapproved_adapter_imports": sorted(unapproved_imports(adapter_imports)),
             "project_runtime_file": str(project_runtime_file),
             "project_runtime_before": project_runtime_before,
             "project_runtime_after": project_runtime_after,

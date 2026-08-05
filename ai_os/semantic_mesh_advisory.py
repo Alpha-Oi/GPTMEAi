@@ -138,11 +138,13 @@ def _coverage_state(diagnostics: Mapping[str, int]) -> str:
 
     if total_blocks == 0:
         return "empty"
-    if strict_blocks == 0:
+    if strict_blocks > 0 and legacy_blocks == 0 and malformed_blocks == 0:
+        return "strict_only"
+    if legacy_blocks > 0 and strict_blocks == 0 and malformed_blocks == 0:
         return "legacy_only"
-    if legacy_blocks > 0 or malformed_blocks > 0:
-        return "mixed"
-    return "strict_only"
+    if malformed_blocks > 0 and strict_blocks == 0 and legacy_blocks == 0:
+        return "malformed_only"
+    return "mixed"
 
 
 def _attention_signals(diagnostics: Mapping[str, int]) -> list[dict[str, Any]]:

@@ -196,14 +196,22 @@ Stage E1 is implemented by `ai_os/semantic_mesh_advisory.py` and verified by
 
 The adapter is pure and library-only. It accepts an already-built
 `SemanticMeshIndex` plus an optional plan mapping and returns aggregate coverage,
-diagnostic counts, relation evidence-source counts, a count-only plan summary,
-and deterministic attention signals. It does not expose mesh nodes, relation
+diagnostic counts, relation evidence-source counts, an aggregate plan summary,
+and deterministic attention signals. The plan summary may include the bounded
+scalar `focus_area`; plan groups, tasks, recovery requests, and planned task
+titles are represented only as counts. It does not expose mesh nodes, relation
 payloads, evidence refs, malformed record details, or planned task titles.
+
+Coverage states are `empty`, `strict_only`, `legacy_only`, `malformed_only`, and
+`mixed`. `legacy_only` requires legacy blocks with no strict or malformed blocks;
+`malformed_only` requires malformed blocks with no strict or legacy blocks. Any
+other non-empty combination is `mixed`.
 
 The adapter declares `runtime_enforcement=false`, `planner_input_applied=false`,
 `dispatch_input_applied=false`, `planner_context_persistence=false`,
 `storage_schema_mutation=false`, and `public_api_behavior_mutation=false`. It does
-not import storage, planner, execution, snapshot, or network dependencies.
+not import storage, planner, execution, snapshot, or network dependencies. The
+focused smoke enforces an exact allowlist for the adapter imports.
 
 Stage E1 does not wire the advisory into `CognitiveLoop`, `PlannerRuntime`, API
 routes, task metadata, recovery requests, persistence, or status surfaces. Any
