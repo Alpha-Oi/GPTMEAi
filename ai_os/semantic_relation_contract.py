@@ -70,7 +70,7 @@ def validate_semantic_relation_list(
 ) -> list[dict[str, str]]:
     """Validate and copy authored relations without I/O, lookup, or mutation."""
 
-    if contract_version != RELATION_CONTRACT_VERSION:
+    if type(contract_version) is not str or contract_version != RELATION_CONTRACT_VERSION:
         raise SemanticRelationContractError(
             "unsupported_contract_version",
             field="contract_version",
@@ -102,7 +102,7 @@ def validate_semantic_relation_list(
         target = relation["target"]
         evidence_ref = relation["evidence_ref"]
 
-        if item_version != contract_version:
+        if type(item_version) is not str or item_version != contract_version:
             raise SemanticRelationContractError(
                 "relation_contract_version_mismatch",
                 index=index,

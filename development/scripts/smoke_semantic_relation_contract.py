@@ -12,6 +12,7 @@ import tempfile
 import uuid
 from pathlib import Path
 from typing import Any, Callable
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -33,6 +34,14 @@ EXPECTED_FIELDS = {
     "target",
     "evidence_ref",
 }
+
+
+class _VersionEqualitySpoof:
+    def __eq__(self, other: object) -> bool:
+        return True
+
+    def __ne__(self, other: object) -> bool:
+        return False
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,6 +98,15 @@ def imported_modules(path: Path) -> set[str]:
     return modules
 
 
+def direct_call_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {
+        node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+
+
 def run_smoke(temp_root: Path) -> dict[str, Any]:
     from ai_os.semantic_mesh import ALLOWED_RELATION_TYPES as MESH_RELATION_TYPES
     from ai_os.semantic_relation_contract import (
@@ -96,8 +114,24 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
         MAX_RELATIONS_PER_NODE,
         RELATION_CONTRACT_VERSION,
         SemanticRelationContractError,
-        validate_semantic_relation_list,
+        validate_semantic_relation_list as contract_validate,
     )
+
+    def validate_semantic_relation_list(
+        relations: object,
+        *,
+        source_concept_id: object,
+        contract_version: object = RELATION_CONTRACT_VERSION,
+    ) -> list[dict[str, str]]:
+        with patch(
+            "builtins.open",
+            side_effect=AssertionError("validator_file_io_forbidden"),
+        ):
+            return contract_validate(
+                relations,
+                source_concept_id=source_concept_id,
+                contract_version=contract_version,
+            )
 
     temp_root.mkdir(parents=True, exist_ok=True)
     temp_before = directory_snapshot(temp_root)
@@ -140,6 +174,14 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
                 [],
                 source_concept_id="concept:alpha",
                 contract_version="semantic_relation.v2",
+            ),
+        ),
+        "non_string_contract_version": (
+            "unsupported_contract_version",
+            lambda: validate_semantic_relation_list(
+                [],
+                source_concept_id="concept:alpha",
+                contract_version=_VersionEqualitySpoof(),
             ),
         ),
         "invalid_source_concept_id": (
@@ -185,6 +227,13 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             "relation_contract_version_mismatch",
             lambda: validate_semantic_relation_list(
                 [valid_relation(contract_version="semantic_relation.v2")],
+                source_concept_id="concept:alpha",
+            ),
+        ),
+        "relation_non_string_contract_version": (
+            "relation_contract_version_mismatch",
+            lambda: validate_semantic_relation_list(
+                [valid_relation(contract_version=_VersionEqualitySpoof())],
                 source_concept_id="concept:alpha",
             ),
         ),
@@ -249,8 +298,28 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
         for name, relations in invalid_string_cases.items()
     }
 
+    io_guard_probe_passed = False
+    try:
+        with patch(
+            "builtins.open",
+            side_effect=AssertionError("validator_file_io_forbidden"),
+        ):
+            open(temp_root / "io_guard_probe.txt", "w", encoding="utf-8")
+    except AssertionError:
+        io_guard_probe_passed = True
+
+    cleanup_probe_result: dict[str, Any] = {"status": "ok"}
+    cleanup_probe_exit_code = apply_cleanup_outcome(
+        cleanup_probe_result,
+        cleanup_requested=True,
+        cleanup_succeeded=False,
+        temp_root_exists=True,
+        cleanup_error="forced_cleanup_failure",
+    )
+
     project_runtime_after = file_metadata(project_runtime_file)
     temp_after = directory_snapshot(temp_root)
+    forbidden_validator_calls = {"open", "__import__"} & direct_call_names(contract_path)
     checks = {
         "contract_version_exact": RELATION_CONTRACT_VERSION == "semantic_relation.v1",
         "allowed_types_exact": set(ALLOWED_RELATION_TYPES) == EXPECTED_RELATION_TYPES,
@@ -270,8 +339,13 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
         "all_required_rejections_are_typed": all(rejection_checks.values()),
         "canonical_string_boundaries_enforced": all(invalid_string_checks.values()),
         "validator_import_allowlist_exact": imported_modules(contract_path) == {"__future__"},
+        "validator_builtin_open_guard_active": io_guard_probe_passed,
+        "validator_forbidden_builtin_calls_absent": not forbidden_validator_calls,
         "project_runtime_file_unchanged": project_runtime_before == project_runtime_after,
-        "validator_produced_no_temp_files": temp_before == temp_after == [],
+        "temp_root_remained_empty": temp_before == temp_after == [],
+        "cleanup_failure_sets_failed_status_and_exit_one": cleanup_probe_result["status"]
+        == "failed"
+        and cleanup_probe_exit_code == 1,
     }
     checks.update({f"rejects_{name}": passed for name, passed in rejection_checks.items()})
     checks.update({f"rejects_{name}": passed for name, passed in invalid_string_checks.items()})
@@ -287,6 +361,7 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             "project_runtime_file": str(project_runtime_file),
             "project_runtime_before": project_runtime_before,
             "project_runtime_after": project_runtime_after,
+            "forbidden_validator_calls": sorted(forbidden_validator_calls),
             "temp_root": str(temp_root),
         },
     }
@@ -300,6 +375,29 @@ def cleanup_temp_root(temp_root: Path) -> tuple[bool, str | None]:
     except OSError as exc:
         return (not temp_root.exists(), str(exc))
     return (not temp_root.exists(), None)
+
+
+def apply_cleanup_outcome(
+    result: dict[str, Any],
+    *,
+    cleanup_requested: bool,
+    cleanup_succeeded: bool | None,
+    temp_root_exists: bool,
+    cleanup_error: str | None,
+) -> int:
+    result["cleanup_requested"] = cleanup_requested
+    result["cleanup_succeeded"] = cleanup_succeeded
+    result["temp_root_exists_after_cleanup"] = temp_root_exists
+    if cleanup_error:
+        result["cleanup_error"] = cleanup_error
+
+    cleanup_failed = cleanup_requested and (
+        cleanup_succeeded is not True or temp_root_exists
+    )
+    if cleanup_failed and result.get("status") == "ok":
+        result["status"] = "failed"
+
+    return 0 if result.get("status") == "ok" and not cleanup_failed else 1
 
 
 def print_result(result: dict[str, Any], *, as_json: bool) -> None:
@@ -320,7 +418,6 @@ def main() -> int:
 
     try:
         result = run_smoke(temp_root)
-        exit_code = 0 if result["status"] == "ok" else 1
     except Exception as exc:
         result = {
             "status": "error",
@@ -329,17 +426,19 @@ def main() -> int:
             "error_type": type(exc).__name__,
             "error": str(exc),
         }
-        exit_code = 1
     finally:
         cleanup_succeeded = None
         cleanup_error = None
         if args.cleanup:
             cleanup_succeeded, cleanup_error = cleanup_temp_root(temp_root)
-        result["cleanup_requested"] = bool(args.cleanup)
-        result["cleanup_succeeded"] = cleanup_succeeded
-        result["temp_root_exists_after_cleanup"] = temp_root.exists()
-        if cleanup_error:
-            result["cleanup_error"] = cleanup_error
+
+    exit_code = apply_cleanup_outcome(
+        result,
+        cleanup_requested=bool(args.cleanup),
+        cleanup_succeeded=cleanup_succeeded,
+        temp_root_exists=temp_root.exists(),
+        cleanup_error=cleanup_error,
+    )
 
     print_result(result, as_json=bool(args.json))
     return exit_code
