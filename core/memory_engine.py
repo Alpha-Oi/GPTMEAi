@@ -106,10 +106,20 @@ class MemoryEngine:
         save_runtime(self.runtime)
         return block
 
-    def add_concept_node(self, payload: dict, *, tags=None, importance: int | None = None):
+    def add_concept_node(
+        self,
+        payload: dict,
+        *,
+        tags=None,
+        importance: int | None = None,
+        relation_contract_version: str | None = None,
+    ):
         from ai_os.concept_core import MemoryCommitValidator
 
-        node = MemoryCommitValidator().validate(payload)
+        node = MemoryCommitValidator().validate(
+            payload,
+            relation_contract_version=relation_contract_version,
+        )
         metadata = {
             "concept_core": node.to_dict()
         }
