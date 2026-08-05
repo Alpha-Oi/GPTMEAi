@@ -191,7 +191,32 @@ The endpoint is additive, read-only, and advisory. It builds the response from `
 
 ### Stage E - Planner/Cognitive advisory adapter
 
-Only after separate design. It must remain advisory-only and non-enforcing.
+Stage E1 is implemented by `ai_os/semantic_mesh_advisory.py` and verified by
+`development/scripts/smoke_semantic_mesh_advisory.py`.
+
+The adapter is pure and library-only. It accepts an already-built
+`SemanticMeshIndex` plus an optional plan mapping and returns aggregate coverage,
+diagnostic counts, relation evidence-source counts, an aggregate plan summary,
+and deterministic attention signals. The plan summary may include the bounded
+scalar `focus_area`; plan groups, tasks, recovery requests, and planned task
+titles are represented only as counts. It does not expose mesh nodes, relation
+payloads, evidence refs, malformed record details, or planned task titles.
+
+Coverage states are `empty`, `strict_only`, `legacy_only`, `malformed_only`, and
+`mixed`. `legacy_only` requires legacy blocks with no strict or malformed blocks;
+`malformed_only` requires malformed blocks with no strict or legacy blocks. Any
+other non-empty combination is `mixed`.
+
+The adapter declares `runtime_enforcement=false`, `planner_input_applied=false`,
+`dispatch_input_applied=false`, `planner_context_persistence=false`,
+`storage_schema_mutation=false`, and `public_api_behavior_mutation=false`. It does
+not import storage, planner, execution, snapshot, or network dependencies. The
+focused smoke enforces an exact allowlist for the adapter imports.
+
+Stage E1 does not wire the advisory into `CognitiveLoop`, `PlannerRuntime`, API
+routes, task metadata, recovery requests, persistence, or status surfaces. Any
+top-level direct cognitive plan integration is a separate approval-gated Stage
+E2 slice and must preserve the existing Concept Core non-consumer pattern.
 
 ### Stage F - Strict relation writer
 
@@ -214,6 +239,8 @@ Future verification expectations:
 
 - run `py_compile` for new code when code exists;
 - use fixture-based smoke for any read-only index implementation;
+- keep the Stage E1 advisory payload aggregate-only and deterministic;
+- prove the advisory adapter has no runtime, planner, storage, or network imports;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
