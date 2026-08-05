@@ -1,0 +1,1882 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>AI OS Control Plane</title>
+<style>
+:root{
+  --bg:#08111f;
+  --bg-soft:#0c1829;
+  --panel:#0c1625;
+  --panel-2:#101d30;
+  --card:#0a1321;
+  --line:rgba(140,177,220,.18);
+  --line-strong:rgba(145,198,255,.28);
+  --text:#edf5ff;
+  --muted:#91a8c5;
+  --accent:#3b82f6;
+  --accent-2:#67e8f9;
+  --accent-warm:#f59e0b;
+  --shadow:0 24px 60px rgba(2,8,23,.38);
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{
+  margin:0;
+  min-height:100vh;
+  font:14px/1.5 "Segoe UI Variable Text","IBM Plex Sans","Trebuchet MS",sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(59,130,246,.18), transparent 28%),
+    radial-gradient(circle at 85% 10%, rgba(103,232,249,.10), transparent 24%),
+    linear-gradient(180deg, #07111d 0%, #0a1321 52%, #09111d 100%);
+}
+.wrap{
+  display:grid;
+  grid-template-columns:340px minmax(720px,980px);
+  gap:22px;
+  padding:22px;
+  align-items:start;
+  justify-content:start;
+}
+.panel{
+  min-height:calc(100vh - 44px);
+  position:sticky;
+  top:22px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:26px;
+  padding:18px;
+  background:
+    linear-gradient(180deg, rgba(11,20,34,.98) 0%, rgba(10,18,31,.94) 100%);
+  box-shadow:var(--shadow);
+}
+.workspace{
+  min-height:calc(100vh - 44px);
+}
+.workspaceIntro{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:14px;
+  padding:20px 22px;
+  border:1px solid var(--line);
+  border-radius:26px;
+  background:
+    linear-gradient(140deg, rgba(12,24,41,.92), rgba(8,15,27,.95)),
+    radial-gradient(circle at top right, rgba(103,232,249,.16), transparent 30%);
+  box-shadow:var(--shadow);
+}
+.workspaceIntro h2{
+  margin:4px 0 0;
+  font:600 28px/1.05 "Segoe UI Variable Display","Bahnschrift","Trebuchet MS",sans-serif;
+  letter-spacing:-.04em;
+}
+.workspaceIntro p{
+  max-width:360px;
+  margin:0;
+  color:var(--muted);
+}
+.out{
+  min-height:calc(100vh - 168px);
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:26px;
+  padding:18px;
+  background:linear-gradient(180deg, rgba(11,20,34,.96), rgba(8,15,27,.98));
+  box-shadow:var(--shadow);
+}
+.brandShell{
+  padding:18px 18px 16px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  margin-bottom:14px;
+  background:
+    linear-gradient(160deg, rgba(17,31,52,.96), rgba(10,18,31,.98)),
+    radial-gradient(circle at top right, rgba(103,232,249,.16), transparent 38%);
+}
+.eyebrow{
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--accent-2);
+  opacity:.9;
+}
+h1{
+  margin:8px 0 6px;
+  font:600 40px/1 "Segoe UI Variable Display","Bahnschrift","Trebuchet MS",sans-serif;
+  letter-spacing:-.06em;
+}
+.brandCopy{
+  margin:0;
+  color:var(--muted);
+  max-width:250px;
+}
+.brandMeta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:14px;
+}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(103,232,249,.18);
+  background:rgba(103,232,249,.08);
+  color:#d8f7fb;
+  font-size:11px;
+  letter-spacing:.04em;
+}
+h3{
+  margin:18px 0 8px;
+  font-size:12px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#b7cae4;
+}
+input,button{
+  width:100%;
+  margin:6px 0;
+  padding:11px 12px;
+  border-radius:12px;
+  border:1px solid var(--line-strong);
+}
+input{
+  background:rgba(9,17,30,.88);
+  color:var(--text);
+}
+input::placeholder{color:#6f85a2}
+button{
+  background:linear-gradient(135deg, #2563eb, #1d4ed8);
+  color:#fff;
+  cursor:pointer;
+  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+  box-shadow:0 10px 24px rgba(37,99,235,.22);
+}
+button:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.04);
+  box-shadow:0 16px 30px rgba(37,99,235,.28);
+}
+.accentButton{
+  background:linear-gradient(135deg, #0f766e, #0891b2);
+  box-shadow:0 10px 24px rgba(8,145,178,.24);
+}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:15px 16px;
+  margin:0 0 12px;
+  background:
+    linear-gradient(180deg, rgba(10,19,33,.97), rgba(7,14,24,.98));
+  max-width:920px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.025) inset;
+}
+.overviewHero{
+  padding:22px 22px 18px;
+  border:1px solid var(--line-strong);
+  border-radius:22px;
+  margin:0 0 14px;
+  background:
+    linear-gradient(145deg, rgba(14,28,47,.98), rgba(8,15,27,.98)),
+    radial-gradient(circle at top right, rgba(59,130,246,.18), transparent 34%);
+}
+.overviewHero h3{
+  margin:8px 0 6px;
+  font-size:28px;
+  line-height:1.05;
+  letter-spacing:-.05em;
+  text-transform:none;
+  color:var(--text);
+}
+.overviewHero p{
+  max-width:620px;
+  margin:0;
+  color:var(--muted);
+}
+.metricStrip{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(120px,1fr));
+  gap:10px;
+  margin:16px 0 4px;
+}
+.metricTile{
+  padding:12px 12px 10px;
+  border:1px solid rgba(145,198,255,.16);
+  border-radius:16px;
+  background:rgba(8,16,28,.7);
+}
+.metricLabel{
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.metricValue{
+  margin-top:6px;
+  font-size:24px;
+  line-height:1;
+  font-weight:600;
+  letter-spacing:-.04em;
+}
+.overviewGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.overviewPanel{
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(10,19,33,.96), rgba(7,14,24,.98));
+}
+.overviewPanel h4{
+  margin:0 0 6px;
+  font-size:15px;
+  letter-spacing:-.02em;
+}
+.overviewPanel p{
+  margin:0 0 12px;
+  color:var(--muted);
+  font-size:12px;
+}
+.overviewRows{
+  display:grid;
+  gap:8px;
+}
+.overviewRow{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:10px 0;
+  border-top:1px solid rgba(145,198,255,.10);
+}
+.overviewRow:first-child{border-top:none;padding-top:0}
+.overviewRowTitle{
+  font-weight:600;
+  line-height:1.3;
+}
+.overviewRowMeta{
+  margin-top:3px;
+  font-size:11px;
+  color:var(--muted);
+}
+.overviewBadge{
+  min-width:74px;
+  text-align:right;
+  font-size:11px;
+  color:#dbeafe;
+}
+.workspaceActionRow{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:8px;
+  margin-bottom:12px;
+}
+.panelHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.panelHeaderActions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.ghostButton{
+  width:auto;
+  min-width:132px;
+  padding:10px 14px;
+  background:rgba(8,16,28,.68);
+  color:#dbeafe;
+  box-shadow:none;
+}
+.ghostButton:hover{
+  box-shadow:none;
+}
+.miniButton{
+  width:auto;
+  min-width:88px;
+  padding:8px 12px;
+  margin:0;
+  border-radius:10px;
+  background:rgba(10,20,34,.88);
+  color:#dbeafe;
+  box-shadow:none;
+}
+.miniButton:hover{
+  box-shadow:none;
+}
+ul{margin:8px 0 0 18px;padding:0}
+pre{white-space:pre-wrap}
+.small{opacity:.82;font-size:11px;line-height:1.5;margin-top:4px;color:var(--muted)}
+.sectionTitle{font-size:13px;font-weight:700;margin:4px 0 10px;color:#f8fbff;letter-spacing:.02em}
+.metaGrid{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:7px 16px;margin-top:2px}
+.metaItem{font-size:12px;opacity:.92}
+.muted{opacity:.7}
+.divider{height:1px;background:linear-gradient(90deg, rgba(103,232,249,.18), transparent);margin:14px 0 4px}
+.emptyState{
+  min-height:220px;
+  display:grid;
+  place-items:center;
+  text-align:left;
+  border:1px dashed rgba(145,198,255,.18);
+  border-radius:20px;
+  padding:22px;
+  color:var(--muted);
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.workspaceIntro,.brandShell,.card,.emptyState{animation:fadeUp .35s ease}
+@media (max-width: 1180px){
+  .wrap{grid-template-columns:1fr;justify-content:stretch}
+  .panel{position:relative;top:0;min-height:auto}
+  .workspaceIntro{flex-direction:column;align-items:flex-start}
+  .out{min-height:60vh}
+}
+@media (max-width: 720px){
+  .wrap{padding:14px;gap:14px}
+  .panel,.workspaceIntro,.out{border-radius:20px}
+  .overviewGrid,.metricStrip{grid-template-columns:1fr}
+  .metaGrid,.row{grid-template-columns:1fr}
+  h1{font-size:34px}
+  .workspaceIntro h2{font-size:24px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <div class="brandShell">
+      <div class="eyebrow">Persistent AI Mind System</div>
+      <h1>AI OS</h1>
+      <p class="brandCopy">Операторский control plane для памяти, planner, recovery, execution и branch-aware runtime.</p>
+      <div class="brandMeta">
+        <span class="chip">local runtime</span>
+        <span class="chip">planner + execution</span>
+        <span class="chip">recovery aware</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <h3>Система</h3>
+    <button class="accentButton" onclick="loadOverview()">Overview</button>
+    <div class="row">
+      <button onclick="show('/health')">Health</button>
+      <button onclick="show('/memory/all')">Память</button>
+    </div>
+    <button onclick="post('/memory/build_graph', {})">Пересобрать граф</button>
+    <div class="row">
+      <button onclick="show('/agents/status')">AI OS Agents</button>
+      <button onclick="show('/system/manifest')">Manifest</button>
+    </div>
+    <div class="row">
+      <button onclick="show('/cognitive/status')">Cognitive status</button>
+      <button onclick="post('/cognitive/run', {})">Run cycle</button>
+    </div>
+    <div class="row">
+      <button onclick="show('/planner/status')">Planner status</button>
+      <button onclick="post('/planner/run', {})">Run planner</button>
+    </div>
+    <div class="row">
+      <button onclick="show('/planner/recovery/workflows')">Recovery workflows</button>
+      <button onclick="show('/planner/branch-health')">Branch health</button>
+    </div>
+    <button onclick="show('/planner/playbooks?limit=10')">Stabilization playbooks</button>
+    <button class="accentButton" onclick="seedRecoveryDemo()">Seed recovery demo</button>
+    <div class="row">
+      <button onclick="show('/execution/status')">Execution status</button>
+      <button onclick="show('/execution/ledger')">Execution ledger</button>
+      <button onclick="previewAgentTask()">Preview execution</button>
+    </div>
+
+    <h3>Cognitive loop</h3>
+    <input id="cognitiveInterval" value="30" placeholder="interval seconds">
+    <div class="row">
+      <button onclick="post('/cognitive/start', {interval_seconds: Number(cognitiveInterval.value || 30)})">Start auto loop</button>
+      <button onclick="post('/cognitive/stop', {})">Stop auto loop</button>
+    </div>
+
+    <h3>Поиск</h3>
+    <input id="q" placeholder="поиск: память">
+    <button onclick="show('/memory/search?q='+enc(q.value))">Искать</button>
+
+    <h3>Поиск по тегу</h3>
+    <input id="tag" placeholder="тег: memory">
+    <button onclick="show('/memory/tag?tag='+enc(tag.value))">Искать тег</button>
+
+    <h3>Последние записи</h3>
+    <input id="recent" value="3">
+    <button onclick="show('/memory/recent?limit='+enc(recent.value))">Показать</button>
+
+    <h3>Связанные записи</h3>
+    <input id="rel" value="4">
+    <button onclick="show('/memory/related?id='+enc(rel.value))">Показать</button>
+
+    <h3>Добавить память</h3>
+    <input id="add" placeholder="новая запись памяти">
+    <button onclick="add.value.trim() ? post('/memory/add', {text:add.value.trim()}) : warn('Введите текст новой памяти')">Добавить</button>
+
+    <h3>Memory pipeline</h3>
+    <div class="row">
+      <button onclick="show('/memory/corpus/status')">Corpus status</button>
+      <button onclick="post('/memory/pipeline/index', {})">Build index</button>
+    </div>
+    <div class="row">
+      <button onclick="post('/memory/pipeline/parse', {})">Parse chats</button>
+      <button onclick="post('/memory/pipeline/knowledge', {})">Build knowledge</button>
+    </div>
+    <button onclick="post('/memory/pipeline/vectorize', {})">Vectorize chats</button>
+
+    <h3>Snapshot</h3>
+    <div class="row">
+      <button onclick="post('/snapshot/export', {})">Экспорт</button>
+      <button onclick="show('/snapshot/latest')">Последний</button>
+      <button onclick="show('/snapshots/lineage')">Snapshot lineage</button>
+    </div>
+    <div class="row">
+      <button onclick="show('/snapshots')">Список snapshot</button>
+      <button onclick="show('/snapshots/replay?branch_id=main')">Replay main</button>
+    </div>
+    <input id="recoveryBranch" value="main" placeholder="branch id для recovery plan">
+    <input id="recoveryPlanId" placeholder="plan_id для recovery advance">
+    <input id="recoveryReplaySteps" value="6" placeholder="max replay steps">
+    <div class="row">
+      <button onclick="previewPlannerRecovery()">Recovery preview</button>
+      <button onclick="plannerRecovery()">Planner recovery</button>
+      <button onclick="advancePlannerRecovery()">Advance recovery</button>
+    </div>
+
+    <h3>Регистрация агентов</h3>
+    <input id="managerName" placeholder="имя менеджера">
+    <button onclick="managerName.value.trim() ? post('/agents/register', {name: managerName.value.trim(), role: 'manager'}) : warn('Введите имя менеджера')">Добавить manager</button>
+    <input id="workerName" placeholder="имя воркера">
+    <button onclick="workerName.value.trim() ? post('/agents/register', {name: workerName.value.trim(), role: 'worker'}) : warn('Введите имя воркера')">Добавить worker</button>
+
+    <h3>Очередь задач AI OS</h3>
+    <input id="agentTask" placeholder="описание задачи для runtime">
+    <input id="agentTaskBranch" value="main" placeholder="branch id">
+    <div class="row">
+      <input id="agentTaskTimeout" value="120" placeholder="timeout seconds">
+      <input id="agentTaskRetries" value="1" placeholder="max retries">
+    </div>
+    <button onclick="queueAgentTask()">Поставить задачу</button>
+    <button onclick="show('/agents/tasks')">Показать задачи</button>
+
+    <h3>Agent policy</h3>
+    <input id="dispatchLimit" value="3" placeholder="dispatch limit">
+    <input id="policyAgentId" placeholder="agent_id для policy preview">
+    <div class="row">
+      <button onclick="show('/agents/policy?limit='+enc(dispatchLimit.value || 3))">Policy preview</button>
+      <button onclick="policyAgentPreview()">Agent preview</button>
+    </div>
+    <button onclick="dispatchQueuedTasks()">Dispatch queued tasks</button>
+
+    <h3>Agent claim</h3>
+    <input id="claimAgentId" placeholder="agent_id для claim">
+    <button onclick="claimAgentId.value.trim() ? post('/agents/claim', {agent_id: claimAgentId.value.trim()}) : warn('Введите agent_id')">Claim next task</button>
+
+    <h3>Agent complete</h3>
+    <input id="completeAgentId" placeholder="agent_id для completion">
+    <input id="completeTaskId" placeholder="task_id">
+    <input id="completeResult" placeholder="результат выполнения">
+    <button onclick="(completeAgentId.value.trim() && completeTaskId.value.trim()) ? post('/agents/complete', {agent_id: completeAgentId.value.trim(), task_id: Number(completeTaskId.value.trim()), result: completeResult.value.trim(), success: true}) : warn('Введите agent_id и task_id')">Complete task</button>
+
+    <h3>Execution compensate</h3>
+    <input id="compensateTaskId" placeholder="task_id для compensation">
+    <input id="compensateReason" placeholder="причина compensation">
+    <button onclick="compensateTask()">Compensate task</button>
+  </div>
+
+  <div class="workspace">
+    <div class="workspaceIntro">
+      <div>
+        <div class="eyebrow">Runtime Workspace</div>
+        <h2>AI OS Control Plane</h2>
+      </div>
+      <p>Здесь отображаются живые срезы memory, planner, recovery, execution и состояния веток. Это основной операторский слой системы.</p>
+    </div>
+    <div id="out" class="out">
+      <div class="emptyState">
+        <div>
+          <div class="sectionTitle">Workspace warming up</div>
+          <div>После загрузки здесь появятся health, planner, recovery workflows, branch health и execution runtime.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const out = document.getElementById('out');
+const enc = encodeURIComponent;
+
+function warn(msg){
+  out.innerHTML = `<div class="card"><b>Ошибка</b><div class="small">${msg}</div></div>`;
+}
+
+function list(items, fn){ return "<ul>"+(items?.length?items.map(fn).join(""):"<li>-</li>")+"</ul>"; }
+
+function render(d){
+  const esc = (v) => String(v ?? "").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  const compactMeta = (parts) => parts.filter(Boolean).map(esc).join(" · ");
+  const overviewRow = (title, meta, badge) => `
+    <div class="overviewRow">
+      <div>
+        <div class="overviewRowTitle">${esc(title)}</div>
+        <div class="overviewRowMeta">${meta || "-"}</div>
+      </div>
+      <div class="overviewBadge">${badge || ""}</div>
+    </div>`;
+  const panelHeader = (title, description, actionLabel, actionHandler) => `
+    <div class="panelHeader">
+      <div>
+        <h4>${esc(title)}</h4>
+        <p>${esc(description)}</p>
+      </div>
+      ${actionLabel && actionHandler ? `<div class="panelHeaderActions"><button class="miniButton" onclick="${actionHandler}">${esc(actionLabel)}</button></div>` : ""}
+    </div>`;
+
+  const itemCard = (x) => `
+    <div class="card">
+      <div style="font-size:16px;line-height:1.35;font-weight:700;margin-bottom:6px;">
+        <span class="muted">[${esc(x.id)}]</span> ${esc(x.text)}
+      </div>
+      <div class="metaGrid">
+        ${x.importance !== undefined ? `<div class="metaItem"><b>importance:</b> ${esc(x.importance)}</div>` : ""}
+        ${Array.isArray(x.tags) ? `<div class="metaItem"><b>tags:</b> ${x.tags.length ? x.tags.map(esc).join(" · ") : "-"}</div>` : ""}
+        ${x.created_at ? `<div class="metaItem"><b>created_at:</b> ${esc(x.created_at)}</div>` : ""}
+        ${x.shared_tags ? `<div class="metaItem"><b>shared_tags:</b> ${x.shared_tags.length ? x.shared_tags.map(esc).join(" · ") : "-"}</div>` : ""}
+        ${x.shared_words ? `<div class="metaItem"><b>shared_words:</b> ${x.shared_words.length ? x.shared_words.map(esc).join(" · ") : "-"}</div>` : ""}
+        ${x.relation_score !== undefined ? `<div class="metaItem"><b>relation_score:</b> ${esc(x.relation_score)}</div>` : ""}
+      </div>
+    </div>`;
+
+  const agentCard = (agent) => `
+    <div class="card">
+      <div style="font-size:16px;line-height:1.35;font-weight:700;margin-bottom:6px;">
+        <span class="muted">[${esc(agent.role)}]</span> ${esc(agent.name)}
+      </div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>id:</b> ${esc(agent.id)}</div>
+        <div class="metaItem"><b>status:</b> ${esc(agent.status)}</div>
+        <div class="metaItem"><b>current_task_id:</b> ${esc(agent.current_task_id ?? "-")}</div>
+        <div class="metaItem"><b>tasks_completed:</b> ${esc(agent.tasks_completed)}</div>
+        <div class="metaItem"><b>tasks_failed:</b> ${esc(agent.tasks_failed ?? 0)}</div>
+        <div class="metaItem"><b>tasks_claimed:</b> ${esc(agent.tasks_claimed ?? 0)}</div>
+        <div class="metaItem"><b>last_assigned_at:</b> ${esc(agent.last_assigned_at ?? "-")}</div>
+        <div class="metaItem"><b>last_heartbeat:</b> ${esc(agent.last_heartbeat)}</div>
+        <div class="metaItem"><b>capabilities:</b> ${Array.isArray(agent.capabilities) && agent.capabilities.length ? agent.capabilities.map(esc).join(" · ") : "-"}</div>
+      </div>
+    </div>`;
+
+  const taskCard = (task) => `
+    <div class="card">
+      <div style="font-size:16px;line-height:1.35;font-weight:700;margin-bottom:6px;">
+        <span class="muted">[#${esc(task.id)}]</span> ${esc(task.title)}
+      </div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>status:</b> ${esc(task.status)}</div>
+        <div class="metaItem"><b>preferred_role:</b> ${esc(task.preferred_role ?? "-")}</div>
+        <div class="metaItem"><b>plan_kind:</b> ${esc(task.metadata?.plan_kind ?? "-")}</div>
+        <div class="metaItem"><b>owner_hint:</b> ${esc(task.metadata?.owner_hint ?? "-")}</div>
+        <div class="metaItem"><b>dispatch_mode:</b> ${esc(task.dispatch_policy?.mode ?? "-")}</div>
+        <div class="metaItem"><b>dispatch_cap:</b> ${esc(task.dispatch_policy?.max_assignments_for_branch ?? "-")}</div>
+        <div class="metaItem"><b>operation_id:</b> ${esc(task.operation_id ?? "-")}</div>
+        <div class="metaItem"><b>branch_id:</b> ${esc(task.branch_id ?? "-")}</div>
+        <div class="metaItem"><b>execution_mode:</b> ${esc(task.execution_mode ?? "-")}</div>
+        <div class="metaItem"><b>assigned_agent:</b> ${esc(task.assigned_agent_name ?? "-")}</div>
+        <div class="metaItem"><b>created_at:</b> ${esc(task.created_at)}</div>
+        <div class="metaItem"><b>started_at:</b> ${esc(task.started_at ?? "-")}</div>
+        <div class="metaItem"><b>completed_at:</b> ${esc(task.completed_at ?? "-")}</div>
+        <div class="metaItem"><b>attempts:</b> ${esc(task.attempts ?? 0)}</div>
+        <div class="metaItem"><b>result:</b> ${esc(task.result ?? "-")}</div>
+      </div>
+    </div>`;
+
+  const eventCard = (event) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;">${esc(event.summary)}</div>
+      <div class="small">${esc(event.timestamp)} · ${esc(event.type)}</div>
+    </div>`;
+
+  const planCard = (plan) => `
+    <div class="card">
+      <div style="font-size:16px;line-height:1.35;font-weight:700;margin-bottom:6px;">
+        <span class="muted">[${esc(plan.id)}]</span> ${esc(plan.title)}
+      </div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>status:</b> ${esc(plan.status)}</div>
+        <div class="metaItem"><b>plan_kind:</b> ${esc(plan.plan_kind ?? "-")}</div>
+        <div class="metaItem"><b>source:</b> ${esc(plan.source ?? "-")}</div>
+        <div class="metaItem"><b>focus_area:</b> ${esc(plan.focus_area ?? "-")}</div>
+        <div class="metaItem"><b>branch_id:</b> ${esc(plan.branch_id ?? "-")}</div>
+        <div class="metaItem"><b>source_branch:</b> ${esc(plan.source_branch_id ?? "-")}</div>
+        <div class="metaItem"><b>source_operation:</b> ${esc(plan.source_operation_id ?? "-")}</div>
+        <div class="metaItem"><b>max_parallel_steps:</b> ${esc(plan.max_parallel_steps ?? 1)}</div>
+        <div class="metaItem"><b>steps total:</b> ${esc(plan.step_counts?.total ?? 0)}</div>
+        <div class="metaItem"><b>completed:</b> ${esc(plan.step_counts?.completed ?? 0)}</div>
+        <div class="metaItem"><b>queued:</b> ${esc(plan.step_counts?.queued ?? 0)}</div>
+        <div class="metaItem"><b>in_progress:</b> ${esc(plan.step_counts?.in_progress ?? 0)}</div>
+        <div class="metaItem"><b>blocked:</b> ${esc(plan.step_counts?.blocked ?? 0)}</div>
+        <div class="metaItem"><b>failed:</b> ${esc(plan.step_counts?.failed ?? 0)}</div>
+        ${plan.branch_planner_gate ? `<div class="metaItem"><b>branch_gate:</b> ${esc(plan.branch_planner_gate.mode ?? "-")}</div>` : ""}
+        ${plan.branch_dispatch_policy ? `<div class="metaItem"><b>dispatch_mode:</b> ${esc(plan.branch_dispatch_policy.mode ?? "-")}</div>` : ""}
+        ${plan.branch_dispatch_policy ? `<div class="metaItem"><b>dispatch_cap:</b> ${esc(plan.branch_dispatch_policy.max_assignments_for_branch ?? "-")}</div>` : ""}
+        ${plan.branch_health?.trend ? `<div class="metaItem"><b>branch_trend:</b> ${esc(plan.branch_health.trend.direction ?? "-")}</div>` : ""}
+        ${plan.branch_health?.quality_drift ? `<div class="metaItem"><b>branch_pressure:</b> ${esc(plan.branch_health.quality_drift.pressure_level ?? "-")} · ${esc(plan.branch_health.quality_drift.pressure_score ?? "-")}</div>` : ""}
+        ${plan.branch_health?.stabilization_playbook ? `<div class="metaItem"><b>playbook:</b> ${esc(plan.branch_health.stabilization_playbook.support_level ?? "-")}</div>` : ""}
+        ${plan.branch_health?.stabilization_playbook ? `<div class="metaItem"><b>playbook_ready:</b> ${esc(plan.branch_health.stabilization_playbook.reuse_ready ?? false)}</div>` : ""}
+        ${plan.recovery_workflow ? `<div class="metaItem"><b>recovery_phase:</b> ${esc(plan.recovery_workflow.current_phase ?? "-")}</div>` : ""}
+        ${plan.recovery_workflow ? `<div class="metaItem"><b>replay_progress:</b> ${esc(plan.recovery_workflow.completed_replay_steps ?? 0)}/${esc(plan.recovery_workflow.planned_replay_step_count ?? 0)}</div>` : ""}
+        ${plan.recovery_workflow?.branch_health ? `<div class="metaItem"><b>branch_health:</b> ${esc(plan.recovery_workflow.branch_health.status ?? "-")}</div>` : ""}
+        ${plan.recovery_workflow?.branch_health ? `<div class="metaItem"><b>quality:</b> ${esc(plan.recovery_workflow.branch_health.quality_score ?? "-")} · ${esc(plan.recovery_workflow.branch_health.quality_grade ?? "-")}</div>` : ""}
+        ${plan.recovery_workflow?.branch_health ? `<div class="metaItem"><b>confidence:</b> ${esc(plan.recovery_workflow.branch_health.confidence_score ?? "-")} · ${esc(plan.recovery_workflow.branch_health.confidence_level ?? "-")}</div>` : ""}
+        ${plan.recovery_workflow?.remediation ? `<div class="metaItem"><b>remediation_status:</b> ${esc(plan.recovery_workflow.remediation.status ?? "-")}</div>` : ""}
+        ${plan.recovery_workflow?.remediation ? `<div class="metaItem"><b>remediation_required:</b> ${esc(plan.recovery_workflow.remediation.required ?? false)}</div>` : ""}
+        ${plan.recovery_workflow?.remediation ? `<div class="metaItem"><b>remediation_plan:</b> ${esc(plan.recovery_workflow.remediation.plan_id ?? "-")}</div>` : ""}
+      </div>
+      ${plan.branch_planner_gate ? `<div class="small"><b>gate:</b> ${esc(plan.branch_planner_gate.summary ?? "-")} · ${esc(plan.branch_planner_gate.recommended_action ?? "-")}</div>` : ""}
+      ${plan.branch_dispatch_policy ? `<div class="small"><b>dispatch:</b> ${esc(plan.branch_dispatch_policy.summary ?? "-")} · cap=${esc(plan.branch_dispatch_policy.max_assignments_for_branch ?? "-")}</div>` : ""}
+      ${plan.branch_health?.trend ? `<div class="small"><b>trend:</b> ${esc(plan.branch_health.trend.summary ?? "-")} · dq=${esc(plan.branch_health.trend.quality_delta ?? 0)} · dc=${esc(plan.branch_health.trend.confidence_delta ?? 0)}</div>` : ""}
+      ${plan.branch_health?.quality_drift ? `<div class="small"><b>drift:</b> ${esc(plan.branch_health.quality_drift.summary ?? "-")} · pressure=${esc(plan.branch_health.quality_drift.pressure_level ?? "-")} · score=${esc(plan.branch_health.quality_drift.pressure_score ?? "-")}</div>` : ""}
+      ${plan.branch_health?.stabilization_playbook ? `<div class="small"><b>playbook:</b> ${esc(plan.branch_health.stabilization_playbook.summary ?? "-")} · support=${esc(plan.branch_health.stabilization_playbook.support_level ?? "-")}</div>` : ""}
+      ${plan.branch_health?.stabilization_playbook?.recommended_actions?.length ? `<div class="small"><b>playbook actions:</b> ${plan.branch_health.stabilization_playbook.recommended_actions.map(action => `${esc(action.title ?? action.key ?? "-")}${action.owner_hint ? ` · ${esc(action.owner_hint)}` : ""}`).join(" | ")}</div>` : ""}
+      ${plan.recovery_workflow ? `<div class="small"><b>next:</b> ${Array.isArray(plan.recovery_workflow.next_actions) && plan.recovery_workflow.next_actions.length ? plan.recovery_workflow.next_actions.map(action => `${esc(action.type ?? "-")}${action.phase ? ` · ${esc(action.phase)}` : ""}`).join(" | ") : "-"}</div>` : ""}
+      ${plan.recovery_workflow?.branch_health ? `<div class="small"><b>health:</b> ${esc(plan.recovery_workflow.branch_health.summary ?? "-")} · ${esc(plan.recovery_workflow.branch_health.recommendation ?? "-")}</div>` : ""}
+      ${plan.recovery_workflow?.branch_health?.trend ? `<div class="small"><b>recovery trend:</b> ${esc(plan.recovery_workflow.branch_health.trend.summary ?? "-")} · ${esc(plan.recovery_workflow.branch_health.trend.direction ?? "-")}</div>` : ""}
+      ${plan.recovery_workflow?.branch_health?.planner_gate ? `<div class="small"><b>recovery gate:</b> ${esc(plan.recovery_workflow.branch_health.planner_gate.mode ?? "-")} · ${esc(plan.recovery_workflow.branch_health.planner_gate.recommended_action ?? "-")}</div>` : ""}
+      ${plan.recovery_workflow?.remediation ? `<div class="small"><b>remediation:</b> ${esc(plan.recovery_workflow.remediation.current_step_title ?? plan.recovery_workflow.remediation.plan_title ?? "-")} · disruptions ${esc(plan.recovery_workflow.remediation.disrupted_replay_steps ?? 0)}/${esc(plan.recovery_workflow.remediation.threshold ?? "-")} · pressure=${esc(plan.recovery_workflow.remediation.pressure_level ?? "-")}</div>` : ""}
+      ${plan.recovery_workflow?.remediation?.adaptation_summary ? `<div class="small"><b>remediation policy:</b> ${esc(plan.recovery_workflow.remediation.adaptation_summary)} · parallel=${esc(plan.recovery_workflow.remediation.max_parallel_steps ?? "-")}</div>` : ""}
+      <div class="small"><b>Steps</b></div>
+      ${list(plan.steps || [], step => `<li>${esc(step.status)} · ${esc(step.key)} · ${esc(step.title)}${step.metadata?.owner_hint ? ` · ${esc(step.metadata.owner_hint)}` : ""}${step.metadata?.replay_logical_time !== undefined ? ` · t=${esc(step.metadata.replay_logical_time)}` : ""}${step.task_id ? ` · task #${esc(step.task_id)}` : ""}</li>`)}
+    </div>`;
+
+  const operationCard = (operation) => `
+    <div class="card">
+      <div style="font-size:16px;line-height:1.35;font-weight:700;margin-bottom:6px;">
+        <span class="muted">[${esc(operation.operation_id)}]</span> ${esc(operation.task_title)}
+      </div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>status:</b> ${esc(operation.status)}</div>
+        <div class="metaItem"><b>compensation:</b> ${esc(operation.compensation_status)}</div>
+        <div class="metaItem"><b>branch_id:</b> ${esc(operation.branch_id)}</div>
+        <div class="metaItem"><b>parent_branch:</b> ${esc(operation.parent_branch_id ?? "-")}</div>
+        <div class="metaItem"><b>parent_operation:</b> ${esc(operation.parent_operation_id ?? "-")}</div>
+        <div class="metaItem"><b>mode:</b> ${esc(operation.execution_mode)}</div>
+        <div class="metaItem"><b>attempts:</b> ${esc(operation.attempts ?? 0)}</div>
+        <div class="metaItem"><b>task_id:</b> ${esc(operation.task_id)}</div>
+        <div class="metaItem"><b>timeout:</b> ${esc(operation.failure_policy?.timeout_seconds ?? "-")}</div>
+        <div class="metaItem"><b>max_retries:</b> ${esc(operation.failure_policy?.max_retries ?? "-")}</div>
+        <div class="metaItem"><b>rollback_on_error:</b> ${esc(operation.failure_policy?.rollback_on_error ?? "-")}</div>
+        <div class="metaItem"><b>degraded_mode:</b> ${esc(operation.failure_policy?.degraded_mode ?? "-")}</div>
+        <div class="metaItem"><b>assigned_agent:</b> ${esc(operation.assigned_agent_name ?? "-")}</div>
+        <div class="metaItem"><b>result:</b> ${esc(operation.result ?? operation.last_error ?? "-")}</div>
+        <div class="metaItem"><b>delta:</b> ${esc(operation.delta?.summary ?? "-")}</div>
+        <div class="metaItem"><b>transition:</b> ${esc(operation.delta?.transition_summary ?? "-")}</div>
+      </div>
+      <div class="small"><b>compensation_plan</b></div>
+      ${list(operation.compensation_plan || [], step => `<li>${esc(step.action)} · ${esc(step.description)}</li>`)}
+    </div>`;
+
+  const policyCandidateCard = (candidate) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;">
+        ${esc(candidate.agent_name ?? candidate.agent_id ?? "agent")}
+      </div>
+      <div class="small">${esc(candidate.role ?? "-")} · score ${esc(candidate.score ?? "-")} · ${esc(candidate.status ?? "-")}</div>
+      <div class="small">${Array.isArray(candidate.reasons) && candidate.reasons.length ? candidate.reasons.map(esc).join(" | ") : "-"}</div>
+    </div>`;
+
+  const policyRecommendationCard = (rec) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;">
+        <span class="muted">[#${esc(rec.task_id)}]</span> ${esc(rec.title)}
+      </div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>branch_id:</b> ${esc(rec.branch_id ?? "-")}</div>
+        <div class="metaItem"><b>plan_kind:</b> ${esc(rec.plan_kind ?? "-")}</div>
+        <div class="metaItem"><b>preferred_role:</b> ${esc(rec.preferred_role ?? "-")}</div>
+        <div class="metaItem"><b>owner_hint:</b> ${esc(rec.owner_hint ?? "-")}</div>
+        <div class="metaItem"><b>dispatch_mode:</b> ${esc(rec.dispatch_policy?.mode ?? "-")}</div>
+        <div class="metaItem"><b>dispatch_cap:</b> ${esc(rec.dispatch_policy?.max_assignments_for_branch ?? "-")}</div>
+        <div class="metaItem"><b>required_capabilities:</b> ${Array.isArray(rec.required_capabilities) && rec.required_capabilities.length ? rec.required_capabilities.map(esc).join(" · ") : "-"}</div>
+      </div>
+      ${rec.selected_agent ? `<div class="small"><b>selected:</b> ${esc(rec.selected_agent.agent_name)} · score ${esc(rec.selected_agent.score)}</div>` : `<div class="small"><b>selected:</b> -</div>`}
+      ${rec.dispatch_blocked_reason ? `<div class="small"><b>dispatch:</b> ${esc(rec.dispatch_blocked_reason)}</div>` : ""}
+      <div class="small">${rec.selected_agent && Array.isArray(rec.selected_agent.reasons) && rec.selected_agent.reasons.length ? rec.selected_agent.reasons.map(esc).join(" | ") : "-"}</div>
+      <div class="small"><b>candidates</b></div>
+      ${(rec.candidates || []).map(policyCandidateCard).join("") || '<div class="card">-</div>'}
+    </div>`;
+
+  const dispatchAssignmentCard = (assignment) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;">
+        <span class="muted">[#${esc(assignment.task_id)}]</span> ${esc(assignment.title)}
+      </div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>agent:</b> ${esc(assignment.agent_name ?? assignment.agent_id ?? "-")}</div>
+        <div class="metaItem"><b>branch_id:</b> ${esc(assignment.branch_id ?? "-")}</div>
+        <div class="metaItem"><b>plan_kind:</b> ${esc(assignment.plan_kind ?? "-")}</div>
+        <div class="metaItem"><b>dispatch_mode:</b> ${esc(assignment.dispatch_policy?.mode ?? "-")}</div>
+        <div class="metaItem"><b>dispatch_cap:</b> ${esc(assignment.dispatch_policy?.max_assignments_for_branch ?? "-")}</div>
+        <div class="metaItem"><b>score:</b> ${esc(assignment.score ?? "-")}</div>
+      </div>
+      <div class="small">${Array.isArray(assignment.reasons) && assignment.reasons.length ? assignment.reasons.map(esc).join(" | ") : "-"}</div>
+      ${assignment.task ? taskCard(assignment.task) : ""}
+    </div>`;
+
+  const recoveryWorkflowCard = (workflow) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;">
+        <span class="muted">[${esc(workflow.plan_id ?? "-")}]</span> ${esc(workflow.title ?? "-")}
+      </div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>status:</b> ${esc(workflow.status ?? "-")}</div>
+        <div class="metaItem"><b>branch_id:</b> ${esc(workflow.branch_id ?? "-")}</div>
+        <div class="metaItem"><b>mode:</b> ${esc(workflow.recovery_mode ?? "-")}</div>
+        <div class="metaItem"><b>current_phase:</b> ${esc(workflow.current_phase ?? "-")}</div>
+        <div class="metaItem"><b>anchor_snapshot:</b> ${esc(workflow.anchor_snapshot_id ?? "-")}</div>
+        <div class="metaItem"><b>alignment_only:</b> ${esc(workflow.alignment_only ?? false)}</div>
+        <div class="metaItem"><b>replay total:</b> ${esc(workflow.replay_step_count ?? 0)}</div>
+        <div class="metaItem"><b>replay planned:</b> ${esc(workflow.planned_replay_step_count ?? 0)}</div>
+        <div class="metaItem"><b>replay completed:</b> ${esc(workflow.completed_replay_steps ?? 0)}</div>
+        <div class="metaItem"><b>replay active:</b> ${esc(workflow.in_progress_replay_steps ?? 0)}</div>
+        <div class="metaItem"><b>replay failed:</b> ${esc(workflow.failed_replay_steps ?? 0)}</div>
+        <div class="metaItem"><b>replay compensated:</b> ${esc(workflow.compensated_replay_steps ?? 0)}</div>
+        <div class="metaItem"><b>health:</b> ${esc(workflow.branch_health?.status ?? "-")}</div>
+        <div class="metaItem"><b>quality:</b> ${esc(workflow.branch_health?.quality_score ?? "-")} · ${esc(workflow.branch_health?.quality_grade ?? "-")}</div>
+        <div class="metaItem"><b>confidence:</b> ${esc(workflow.branch_health?.confidence_score ?? "-")} · ${esc(workflow.branch_health?.confidence_level ?? "-")}</div>
+        <div class="metaItem"><b>trend:</b> ${esc(workflow.branch_health?.trend?.direction ?? "-")}</div>
+        <div class="metaItem"><b>gate:</b> ${esc(workflow.branch_health?.planner_gate?.mode ?? "-")}</div>
+        <div class="metaItem"><b>pressure:</b> ${esc(workflow.branch_health?.quality_drift?.pressure_level ?? "-")} · ${esc(workflow.branch_health?.quality_drift?.pressure_score ?? "-")}</div>
+        <div class="metaItem"><b>dispatch:</b> ${esc(workflow.branch_health?.dispatch_policy?.mode ?? "-")}</div>
+        <div class="metaItem"><b>dispatch_cap:</b> ${esc(workflow.branch_health?.dispatch_policy?.max_assignments_for_branch ?? "-")}</div>
+        <div class="metaItem"><b>playbook:</b> ${esc(workflow.branch_health?.stabilization_playbook?.support_level ?? "-")}</div>
+        <div class="metaItem"><b>playbook_ready:</b> ${esc(workflow.branch_health?.stabilization_playbook?.reuse_ready ?? false)}</div>
+        <div class="metaItem"><b>remediation status:</b> ${esc(workflow.remediation?.status ?? "-")}</div>
+        <div class="metaItem"><b>remediation required:</b> ${esc(workflow.remediation?.required ?? false)}</div>
+        <div class="metaItem"><b>remediation blocked:</b> ${esc(workflow.remediation?.blocking_recovery ?? false)}</div>
+        <div class="metaItem"><b>remediation plan:</b> ${esc(workflow.remediation?.plan_id ?? "-")}</div>
+      </div>
+      <div class="small">${esc(workflow.current_step_title ?? "-")}</div>
+      ${workflow.branch_health ? `<div class="small"><b>health:</b> ${esc(workflow.branch_health.summary ?? "-")} · ${esc(workflow.branch_health.recommendation ?? "-")}</div>` : ""}
+      ${workflow.branch_health?.trend ? `<div class="small"><b>trend:</b> ${esc(workflow.branch_health.trend.summary ?? "-")} · ${esc(workflow.branch_health.trend.direction ?? "-")}</div>` : ""}
+      ${workflow.branch_health?.quality_drift ? `<div class="small"><b>drift:</b> ${esc(workflow.branch_health.quality_drift.summary ?? "-")} · pressure=${esc(workflow.branch_health.quality_drift.pressure_level ?? "-")} · score=${esc(workflow.branch_health.quality_drift.pressure_score ?? "-")}</div>` : ""}
+      ${workflow.branch_health?.planner_gate ? `<div class="small"><b>gate:</b> ${esc(workflow.branch_health.planner_gate.summary ?? "-")} · ${esc(workflow.branch_health.planner_gate.recommended_action ?? "-")}</div>` : ""}
+      ${workflow.branch_health?.dispatch_policy ? `<div class="small"><b>dispatch:</b> ${esc(workflow.branch_health.dispatch_policy.summary ?? "-")} · cap=${esc(workflow.branch_health.dispatch_policy.max_assignments_for_branch ?? "-")}</div>` : ""}
+      ${workflow.branch_health?.stabilization_playbook ? `<div class="small"><b>playbook:</b> ${esc(workflow.branch_health.stabilization_playbook.summary ?? "-")} · support=${esc(workflow.branch_health.stabilization_playbook.support_level ?? "-")}</div>` : ""}
+      ${workflow.branch_health?.stabilization_playbook?.recommended_actions?.length ? `<div class="small"><b>playbook actions:</b> ${workflow.branch_health.stabilization_playbook.recommended_actions.map(action => `${esc(action.title ?? action.key ?? "-")}${action.owner_hint ? ` · ${esc(action.owner_hint)}` : ""}`).join(" | ")}</div>` : ""}
+      ${workflow.remediation ? `<div class="small"><b>remediation:</b> ${esc(workflow.remediation.current_step_title ?? workflow.remediation.plan_title ?? "-")} · disruptions ${esc(workflow.remediation.disrupted_replay_steps ?? 0)}/${esc(workflow.remediation.threshold ?? "-")} · pressure=${esc(workflow.remediation.pressure_level ?? "-")}</div>` : ""}
+      ${workflow.remediation?.adaptation_summary ? `<div class="small"><b>remediation policy:</b> ${esc(workflow.remediation.adaptation_summary)} · parallel=${esc(workflow.remediation.max_parallel_steps ?? "-")}</div>` : ""}
+      <div class="small"><b>next:</b> ${Array.isArray(workflow.next_actions) && workflow.next_actions.length ? workflow.next_actions.map(action => `${esc(action.type ?? "-")}${action.phase ? ` · ${esc(action.phase)}` : ""}`).join(" | ") : "-"}</div>
+    </div>`;
+
+  const branchCard = (branch) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;">${esc(branch.branch_id)}</div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>parent_branch:</b> ${esc(branch.parent_branch_id ?? "-")}</div>
+        <div class="metaItem"><b>depth:</b> ${esc(branch.depth ?? 0)}</div>
+        <div class="metaItem"><b>event_count:</b> ${esc(branch.event_count ?? 0)}</div>
+        <div class="metaItem"><b>operation_count:</b> ${esc(branch.operation_count ?? 0)}</div>
+        <div class="metaItem"><b>first_entry_id:</b> ${esc(branch.first_entry_id ?? "-")}</div>
+        <div class="metaItem"><b>last_entry_id:</b> ${esc(branch.last_entry_id ?? "-")}</div>
+      </div>
+    </div>`;
+
+  const branchHealthCard = (branch) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;">${esc(branch.branch_id ?? "-")}</div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>status:</b> ${esc(branch.status ?? "-")}</div>
+        <div class="metaItem"><b>recommendation:</b> ${esc(branch.recommendation ?? "-")}</div>
+        <div class="metaItem"><b>quality:</b> ${esc(branch.quality_score ?? "-")}</div>
+        <div class="metaItem"><b>confidence:</b> ${esc(branch.confidence_score ?? "-")}</div>
+        <div class="metaItem"><b>gate:</b> ${esc(branch.planner_gate?.mode ?? "-")}</div>
+        <div class="metaItem"><b>gate_action:</b> ${esc(branch.planner_gate?.recommended_action ?? "-")}</div>
+        <div class="metaItem"><b>dispatch:</b> ${esc(branch.dispatch_policy?.mode ?? "-")}</div>
+        <div class="metaItem"><b>dispatch_cap:</b> ${esc(branch.dispatch_policy?.max_assignments_for_branch ?? "-")}</div>
+        <div class="metaItem"><b>pressure:</b> ${esc(branch.quality_drift?.pressure_level ?? "-")}</div>
+        <div class="metaItem"><b>pressure_score:</b> ${esc(branch.quality_drift?.pressure_score ?? "-")}</div>
+        <div class="metaItem"><b>trend:</b> ${esc(branch.trend?.direction ?? "-")}</div>
+        <div class="metaItem"><b>observations:</b> ${esc(branch.observation_count ?? branch.trend?.observation_count ?? 0)}</div>
+        <div class="metaItem"><b>plan_id:</b> ${esc(branch.plan_id ?? "-")}</div>
+        <div class="metaItem"><b>phase:</b> ${esc(branch.current_phase ?? "-")}</div>
+        <div class="metaItem"><b>playbook:</b> ${esc(branch.stabilization_playbook?.support_level ?? "-")}</div>
+        <div class="metaItem"><b>playbook_ready:</b> ${esc(branch.stabilization_playbook?.reuse_ready ?? false)}</div>
+      </div>
+      <div class="small"><b>health:</b> ${esc(branch.summary ?? "-")}</div>
+      ${branch.trend ? `<div class="small"><b>trend:</b> ${esc(branch.trend.summary ?? "-")} · dq=${esc(branch.trend.quality_delta ?? 0)} · dc=${esc(branch.trend.confidence_delta ?? 0)}</div>` : ""}
+      ${branch.quality_drift ? `<div class="small"><b>drift:</b> ${esc(branch.quality_drift.summary ?? "-")} · pressure=${esc(branch.quality_drift.pressure_level ?? "-")} · score=${esc(branch.quality_drift.pressure_score ?? "-")}</div>` : ""}
+      ${branch.planner_gate ? `<div class="small"><b>gate:</b> ${esc(branch.planner_gate.summary ?? "-")}</div>` : ""}
+      ${branch.dispatch_policy ? `<div class="small"><b>dispatch:</b> ${esc(branch.dispatch_policy.summary ?? "-")} · cap=${esc(branch.dispatch_policy.max_assignments_for_branch ?? "-")}</div>` : ""}
+      ${branch.stabilization_playbook ? `<div class="small"><b>playbook:</b> ${esc(branch.stabilization_playbook.summary ?? "-")} · success=${esc(branch.stabilization_playbook.success_rate ?? "-")}%</div>` : ""}
+      ${branch.stabilization_playbook?.recommended_actions?.length ? `<div class="small"><b>playbook actions:</b> ${branch.stabilization_playbook.recommended_actions.map(action => `${esc(action.title ?? action.key ?? "-")}${action.owner_hint ? ` · ${esc(action.owner_hint)}` : ""}`).join(" | ")}</div>` : ""}
+    </div>`;
+
+  const snapshotCard = (snapshot) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;">${esc(snapshot.label ?? snapshot.name ?? snapshot.snapshot_id)}</div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>snapshot_id:</b> ${esc(snapshot.snapshot_id ?? "-")}</div>
+        <div class="metaItem"><b>branch_id:</b> ${esc(snapshot.branch_id ?? "-")}</div>
+        <div class="metaItem"><b>parent_branch:</b> ${esc(snapshot.parent_branch_id ?? "-")}</div>
+        <div class="metaItem"><b>parent_snapshot:</b> ${esc(snapshot.parent_snapshot_id ?? "-")}</div>
+        <div class="metaItem"><b>source_operation:</b> ${esc(snapshot.source_operation_id ?? "-")}</div>
+        <div class="metaItem"><b>logical_time:</b> ${esc(snapshot.entry_logical_time ?? "-")}</div>
+        <div class="metaItem"><b>memory_count:</b> ${esc(snapshot.memory_count ?? "-")}</div>
+        <div class="metaItem"><b>graph_nodes:</b> ${esc(snapshot.graph_nodes ?? "-")}</div>
+        <div class="metaItem"><b>created_at:</b> ${esc(snapshot.created_at ?? "-")}</div>
+      </div>
+    </div>`;
+
+  const ledgerEntryCard = (entry) => `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;">${esc(entry.summary)}</div>
+      <div class="small">${esc(entry.timestamp)} · ${esc(entry.event_type)}</div>
+      <div class="metaGrid">
+        <div class="metaItem"><b>operation_id:</b> ${esc(entry.operation_id ?? "-")}</div>
+        <div class="metaItem"><b>task_id:</b> ${esc(entry.task_id ?? "-")}</div>
+        <div class="metaItem"><b>task_title:</b> ${esc(entry.task_title ?? "-")}</div>
+        <div class="metaItem"><b>status:</b> ${esc(entry.status ?? "-")}</div>
+        <div class="metaItem"><b>compensation:</b> ${esc(entry.compensation_status ?? "-")}</div>
+        <div class="metaItem"><b>branch_id:</b> ${esc(entry.branch_id ?? "-")}</div>
+        <div class="metaItem"><b>parent_branch:</b> ${esc(entry.parent_branch_id ?? "-")}</div>
+        <div class="metaItem"><b>parent_operation:</b> ${esc(entry.parent_operation_id ?? "-")}</div>
+        <div class="metaItem"><b>parent_entry:</b> ${esc(entry.parent_entry_id ?? "-")}</div>
+        <div class="metaItem"><b>lineage_depth:</b> ${esc(entry.lineage_depth ?? 0)}</div>
+        <div class="metaItem"><b>branch_sequence:</b> ${esc(entry.branch_sequence ?? 0)}</div>
+        <div class="metaItem"><b>operation_sequence:</b> ${esc(entry.operation_sequence ?? 0)}</div>
+        <div class="metaItem"><b>attempts:</b> ${esc(entry.attempts ?? 0)}</div>
+        <div class="metaItem"><b>owner_hint:</b> ${esc(entry.owner_hint ?? "-")}</div>
+        <div class="metaItem"><b>assigned_agent:</b> ${esc(entry.assigned_agent_name ?? "-")}</div>
+        <div class="metaItem"><b>last_error:</b> ${esc(entry.last_error ?? "-")}</div>
+        <div class="metaItem"><b>delta:</b> ${esc(entry.delta?.summary ?? "-")}</div>
+        <div class="metaItem"><b>transition:</b> ${esc(entry.delta?.transition_summary ?? "-")}</div>
+      </div>
+    </div>`;
+
+  if (d && d.service === "AI OS Overview") {
+    const health = d.health || {};
+    const planner = d.planner || {};
+    const branchHealth = d.branchHealth || {};
+    const recovery = d.recovery || {};
+    const execution = d.execution || {};
+    const agents = d.agents || {};
+    const memory = d.memory || {};
+
+    return `
+      <div class="workspaceActionRow">
+        <button class="ghostButton" onclick="loadOverview()">Refresh overview</button>
+        <button class="ghostButton" onclick="show('/planner/status')">Planner</button>
+        <button class="ghostButton" onclick="show('/planner/recovery/workflows')">Recovery</button>
+        <button class="ghostButton" onclick="show('/planner/branch-health')">Branches</button>
+        <button class="ghostButton" onclick="show('/planner/playbooks?limit=10')">Playbooks</button>
+        <button class="ghostButton" onclick="show('/execution/status')">Execution</button>
+      </div>
+      <div class="overviewHero">
+        <div class="eyebrow">Operator Overview</div>
+        <h3>Runtime pulse across memory, planner, recovery and execution</h3>
+        <p>Этот экран собирает главный рабочий срез AI OS в одном месте: состояние веток, recovery pressure, planner load и execution signals без перехода по отдельным endpoint-экранам.</p>
+        <div class="metricStrip">
+          <div class="metricTile">
+            <div class="metricLabel">Memory blocks</div>
+            <div class="metricValue">${esc(health.memory_count ?? "-")}</div>
+          </div>
+          <div class="metricTile">
+            <div class="metricLabel">Planner active</div>
+            <div class="metricValue">${esc(health.planner_active ?? "-")}</div>
+          </div>
+          <div class="metricTile">
+            <div class="metricLabel">Recovery flows</div>
+            <div class="metricValue">${esc(health.planner_recovery_workflows ?? "-")}</div>
+          </div>
+          <div class="metricTile">
+            <div class="metricLabel">Queued tasks</div>
+            <div class="metricValue">${esc(health.tasks_queued ?? agents.task_counts?.queued ?? "-")}</div>
+          </div>
+          <div class="metricTile">
+            <div class="metricLabel">Branches gated</div>
+            <div class="metricValue">${esc((branchHealth.branch_counts?.guarded ?? 0) + (branchHealth.branch_counts?.restricted ?? 0) + (branchHealth.branch_counts?.blocked ?? 0))}</div>
+          </div>
+        </div>
+      </div>
+      <div class="overviewGrid">
+        <div class="overviewPanel">
+          ${panelHeader("System pulse", "Короткий operational срез по ядру системы.", "Open health", "show('/health')")}
+          <div class="overviewRows">
+            ${overviewRow("Agents online", compactMeta([`${agents.agent_counts?.total ?? 0} total`, `${agents.agent_counts?.idle ?? 0} idle`, `${agents.agent_counts?.busy ?? 0} busy`]), `tasks ${esc(agents.task_counts?.total ?? 0)}`)}
+            ${overviewRow("Execution runtime", compactMeta([`${execution.operation_counts?.in_progress ?? 0} in progress`, `${execution.operation_counts?.failed ?? 0} failed`, `${execution.compensation_counts?.pending ?? 0} pending compensation`]), `ops ${esc(execution.operation_counts?.total ?? 0)}`)}
+            ${overviewRow("Memory corpus", compactMeta([`${memory.counts?.chat_files ?? 0} chats`, `${memory.counts?.knowledge_topics ?? 0} knowledge`, `${memory.counts?.vector_items ?? 0} vectors`]), memory.available?.vectors ? "indexed" : "partial")}
+          </div>
+        </div>
+        <div class="overviewPanel">
+          ${panelHeader("Planner pressure", "Понимание загрузки planner и текущего orchestration давления.", "Open planner", "show('/planner/status')")}
+          <div class="overviewRows">
+            ${overviewRow("Plans", compactMeta([`${planner.plan_counts?.active ?? 0} active`, `${planner.plan_counts?.completed ?? 0} completed`, `${planner.plan_counts?.failed ?? 0} failed`]), `${esc(planner.plan_counts?.total ?? 0)} total`)}
+            ${overviewRow("Steps", compactMeta([`${planner.step_counts?.queued ?? 0} queued`, `${planner.step_counts?.blocked ?? 0} blocked`, `${planner.step_counts?.in_progress ?? 0} in progress`]), `${esc(planner.step_counts?.total ?? 0)} steps`)}
+            ${overviewRow("Recovery load", compactMeta([`${recovery.workflow_counts?.active ?? 0} active`, `${recovery.workflow_counts?.observe ?? 0} observe`, `${recovery.workflow_counts?.degraded ?? 0} degraded`]), `${esc(recovery.workflow_counts?.total ?? 0)} flows`)}
+          </div>
+        </div>
+        <div class="overviewPanel">
+          ${panelHeader("Branch state", "Какие ветки сейчас требуют внимания или работают в guarded mode.", "Open branches", "show('/planner/branch-health')")}
+          <div class="overviewRows">
+            ${(branchHealth.branches || []).slice(0, 4).map(branch => overviewRow(
+              branch.branch_id || "branch",
+              compactMeta([
+                branch.status || "-",
+                branch.trend?.direction || "-",
+                branch.recommendation || "-",
+                `pressure ${branch.quality_drift?.pressure_level || "-"}`
+              ]),
+              `${esc(branch.planner_gate?.mode ?? "-")} / ${esc(branch.quality_drift?.pressure_score ?? branch.quality_score ?? "-")}`
+            )).join("") || overviewRow("No branch health yet", "Recovery-aware branch metrics will appear here.", "-")}
+          </div>
+        </div>
+        <div class="overviewPanel">
+          ${panelHeader("Recovery focus", "Ближайшие recovery workflow и их операторский статус.", "Open recovery", "show('/planner/recovery/workflows')")}
+          <div class="overviewRows">
+            ${(recovery.workflows || []).slice(0, 4).map(workflow => overviewRow(
+              workflow.title || workflow.plan_id || "workflow",
+              compactMeta([
+                workflow.branch_id || "-",
+                workflow.current_phase || "-",
+                workflow.branch_health?.trend?.direction || workflow.branch_health?.status || "-",
+                `pressure ${workflow.branch_health?.quality_drift?.pressure_level || "-"}`
+              ]),
+              `${esc(workflow.branch_health?.planner_gate?.mode ?? workflow.status ?? "-")}`
+            )).join("") || overviewRow("No recovery workflows", "Create recovery flow or seed demo to populate this area.", "-")}
+          </div>
+        </div>
+        <div class="overviewPanel">
+          ${panelHeader("Active plans", "Что planner считает текущим рабочим фокусом.", "Open planner", "show('/planner/status')")}
+          <div class="overviewRows">
+            ${(planner.plans || []).slice(0, 4).map(plan => overviewRow(
+              plan.title || plan.id || "plan",
+              compactMeta([
+                plan.plan_kind || "-",
+                plan.focus_area || "-",
+                `${plan.step_counts?.queued ?? 0} queued / ${plan.step_counts?.blocked ?? 0} blocked`
+              ]),
+              `${esc(plan.status ?? "-")}`
+            )).join("") || overviewRow("No active plans", "Planner focus will appear here when plans exist.", "-")}
+          </div>
+        </div>
+        <div class="overviewPanel">
+          ${panelHeader("Recent execution", "Последние операции и важные сигналы исполнения.", "Open execution", "show('/execution/status')")}
+          <div class="overviewRows">
+            ${(execution.operations || []).slice(0, 4).map(operation => overviewRow(
+              operation.task_title || operation.operation_id || "operation",
+              compactMeta([
+                operation.branch_id || "-",
+                operation.status || "-",
+                operation.assigned_agent_name || operation.owner_hint || "-"
+              ]),
+              `${esc(operation.compensation_status ?? "-")}`
+            )).join("") || overviewRow("No recent execution", "Execution operations will appear after task activity.", "-")}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  if (d && d.service === "AI OS Cognitive Loop") {
+    const last = d.last_cycle || {};
+    const perception = last.perception || {};
+    const reasoning = last.reasoning || {};
+    const plan = last.plan || {};
+    const action = last.action || {};
+    const learning = last.learning || {};
+
+    const agentLine = (agent) => `<li>[${esc(agent.role)}] ${esc(agent.name)}</li>`;
+    const taskLine = (task) => `<li>${esc(task.title)}${task.metadata?.owner_hint ? ` · ${esc(task.metadata.owner_hint)}` : ""}</li>`;
+    const observationLine = (item) => `<li>${esc(item)}</li>`;
+    const tagLine = (item) => `<li>${esc(item.tag)} · ${esc(item.count)}</li>`;
+    const historyLine = (item) => `<li>${esc(item.timestamp)} · ${esc(item.focus_area)} · queued=${esc(item.queued_count)}</li>`;
+
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Cognitive Loop</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>status:</b> ${esc(d.status)}</div>
+          <div class="metaItem"><b>running:</b> ${esc(d.running)}</div>
+          <div class="metaItem"><b>interval_seconds:</b> ${esc(d.interval_seconds)}</div>
+          <div class="metaItem"><b>cycle_count:</b> ${esc(d.cycle_count)}</div>
+          <div class="metaItem"><b>last_cycle_at:</b> ${esc(d.last_cycle_at || "-")}</div>
+          <div class="metaItem"><b>last_trigger:</b> ${esc(d.last_trigger || "-")}</div>
+        </div>
+        ${d.message ? `<div class="small">${esc(d.message)}</div>` : ""}
+      </div>
+      <div class="card">
+        <div class="sectionTitle">Runtime snapshot</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>agents total:</b> ${esc(d.agent_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>tasks total:</b> ${esc(d.task_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>queued:</b> ${esc(d.task_counts?.queued ?? "-")}</div>
+          <div class="metaItem"><b>in_progress:</b> ${esc(d.task_counts?.in_progress ?? "-")}</div>
+          <div class="metaItem"><b>planner active:</b> ${esc(d.planner_feedback?.plan_counts?.active ?? "-")}</div>
+          <div class="metaItem"><b>planner blocked:</b> ${esc(d.planner_feedback?.step_counts?.blocked ?? "-")}</div>
+          <div class="metaItem"><b>remediation plans:</b> ${esc(d.planner_feedback?.plan_kind_counts?.remediation ?? "-")}</div>
+          <div class="metaItem"><b>recovery plans:</b> ${esc(d.planner_feedback?.plan_kind_counts?.recovery ?? "-")}</div>
+          <div class="metaItem"><b>stabilization memory:</b> ${esc(d.stabilization_memory?.count ?? "-")}</div>
+          <div class="metaItem"><b>playbooks ready:</b> ${esc(d.stabilization_playbooks?.playbook_counts?.reuse_ready ?? "-")}</div>
+        </div>
+        ${d.last_error ? `<div class="small">${esc(d.last_error.timestamp)} · ${esc(d.last_error.message)}</div>` : ""}
+      </div>
+      <div class="card">
+        <div class="sectionTitle">Stabilization memory</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>records:</b> ${esc(d.stabilization_memory?.count ?? 0)}</div>
+          <div class="metaItem"><b>branches:</b> ${esc((d.stabilization_memory?.branch_counts || []).length)}</div>
+          <div class="metaItem"><b>last cycle recorded:</b> ${esc(d.last_cycle?.learning?.stabilization_feedback?.recorded_learning_count ?? 0)}</div>
+          <div class="metaItem"><b>playbooks:</b> ${esc(d.stabilization_playbooks?.playbook_counts?.total ?? 0)}</div>
+          <div class="metaItem"><b>playbooks ready:</b> ${esc(d.stabilization_playbooks?.playbook_counts?.reuse_ready ?? 0)}</div>
+        </div>
+        <div class="small"><b>memory branches</b></div>
+        ${list(d.stabilization_memory?.branch_counts || [], item => `<li>${esc(item.branch_id)} · ${esc(item.count)}</li>`)}
+        <div class="small"><b>playbooks</b></div>
+        ${list(d.stabilization_playbooks?.branches || [], item => `<li>${esc(item.branch_id)} · ${esc(item.support_level ?? "-")} · ready=${esc(item.reuse_ready ?? false)} · success=${esc(item.success_rate ?? 0)}%</li>`)}
+        <div class="small"><b>recorded this cycle</b></div>
+        ${list(d.last_cycle?.learning?.stabilization_feedback?.recorded_learning || [], item => `<li>${esc(item.branch_id)} · ${esc(item.plan_status)} · ${esc(item.pressure_level ?? "-")} · ${esc(item.dispatch_mode ?? "-")}</li>`)}
+      </div>
+      <div class="card">
+        <div class="sectionTitle">Perception</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>memory_count:</b> ${esc(perception.memory_count ?? "-")}</div>
+          <div class="metaItem"><b>focus_area:</b> ${esc(reasoning.primary_focus ?? "-")}</div>
+          <div class="metaItem"><b>chat_files:</b> ${esc(perception.pipeline?.counts?.chat_files ?? "-")}</div>
+          <div class="metaItem"><b>vector_items:</b> ${esc(perception.pipeline?.counts?.vector_items ?? "-")}</div>
+          <div class="metaItem"><b>stabilization_memory:</b> ${esc(perception.stabilization_memory?.count ?? "-")}</div>
+          <div class="metaItem"><b>playbooks_ready:</b> ${esc(perception.stabilization_playbooks?.playbook_counts?.reuse_ready ?? "-")}</div>
+        </div>
+        <div class="small"><b>top_tags</b></div>
+        ${list(perception.top_tags || [], tagLine)}
+      </div>
+      <div class="card">
+        <div class="sectionTitle">Reasoning</div>
+        <div class="small"><b>observations</b></div>
+        ${list(reasoning.observations || [], observationLine)}
+        <div class="small"><b>missing_artifacts</b></div>
+        ${list(reasoning.missing_artifacts || [], observationLine)}
+        <div class="small"><b>pressure_branches</b></div>
+        ${list(reasoning.pressure_branches || [], item => `<li>${esc(item.branch_id)} · ${esc(item.pressure_level ?? "-")} · dispatch ${esc(item.dispatch_mode ?? "-")} · memory ${esc(item.stabilization_memory_count ?? 0)} · playbook ${esc(item.stabilization_playbook_support ?? "-")} · ready=${esc(item.stabilization_playbook_ready ?? false)}</li>`)}
+      </div>
+      <div class="card">
+        <div class="sectionTitle">Planned actions</div>
+        <div class="small"><b>agent registrations</b></div>
+        ${list(plan.registrations || [], agentLine)}
+        <div class="small"><b>queued tasks</b></div>
+        ${list(plan.tasks || [], taskLine)}
+      </div>
+      <div class="card">
+        <div class="sectionTitle">Cycle result</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>registered_count:</b> ${esc(action.registered_count ?? "-")}</div>
+          <div class="metaItem"><b>queued_count:</b> ${esc(action.queued_count ?? "-")}</div>
+          <div class="metaItem"><b>planner_plans:</b> ${esc((action.planner_plans || []).length)}</div>
+          <div class="metaItem"><b>planner_reused:</b> ${esc((learning.planner_feedback?.reused_count ?? "-"))}</div>
+          <div class="metaItem"><b>queue_depth_after_cycle:</b> ${esc(learning.queue_depth_after_cycle ?? "-")}</div>
+          <div class="metaItem"><b>state_file:</b> ${esc(d.state_file)}</div>
+          <div class="metaItem"><b>stabilization_records:</b> ${esc(learning.stabilization_feedback?.recorded_learning_count ?? "-")}</div>
+          <div class="metaItem"><b>playbooks_ready:</b> ${esc(learning.stabilization_playbook_counts?.reuse_ready ?? d.stabilization_playbooks?.playbook_counts?.reuse_ready ?? "-")}</div>
+        </div>
+        <div class="small"><b>created plan kinds</b></div>
+        ${list(learning.planner_feedback?.created_plan_kinds || [], item => `<li>${esc(item)}</li>`)}
+      </div>
+      <div class="card">
+        <div class="sectionTitle">Recent cycles</div>
+        ${list(d.recent_cycles || [], historyLine)}
+      </div>`;
+  }
+
+  if (d && d.service === "AI OS Planner Runtime") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Planner Runtime</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>state_file:</b> ${esc(d.state_file ?? "-")}</div>
+          <div class="metaItem"><b>plans total:</b> ${esc(d.plan_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>active plans:</b> ${esc(d.plan_counts?.active ?? "-")}</div>
+          <div class="metaItem"><b>completed plans:</b> ${esc(d.plan_counts?.completed ?? "-")}</div>
+          <div class="metaItem"><b>failed plans:</b> ${esc(d.plan_counts?.failed ?? "-")}</div>
+          <div class="metaItem"><b>operational plans:</b> ${esc(d.plan_kind_counts?.operational ?? "-")}</div>
+          <div class="metaItem"><b>recovery plans:</b> ${esc(d.plan_kind_counts?.recovery ?? "-")}</div>
+          <div class="metaItem"><b>remediation plans:</b> ${esc(d.plan_kind_counts?.remediation ?? "-")}</div>
+          <div class="metaItem"><b>branch plans:</b> ${esc(d.plan_kind_counts?.branch_stabilization ?? "-")}</div>
+          <div class="metaItem"><b>steps total:</b> ${esc(d.step_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>planned:</b> ${esc(d.step_counts?.planned ?? "-")}</div>
+          <div class="metaItem"><b>blocked:</b> ${esc(d.step_counts?.blocked ?? "-")}</div>
+          <div class="metaItem"><b>queued:</b> ${esc(d.step_counts?.queued ?? "-")}</div>
+          <div class="metaItem"><b>in_progress:</b> ${esc(d.step_counts?.in_progress ?? "-")}</div>
+          <div class="metaItem"><b>completed:</b> ${esc(d.step_counts?.completed ?? "-")}</div>
+          <div class="metaItem"><b>failed:</b> ${esc(d.step_counts?.failed ?? "-")}</div>
+          <div class="metaItem"><b>active recovery workflows:</b> ${esc((d.recovery_workflows || []).length)}</div>
+          <div class="metaItem"><b>remediation blocked:</b> ${esc(d.recovery_counts?.remediation_blocked ?? "-")}</div>
+          <div class="metaItem"><b>remediation required:</b> ${esc(d.recovery_counts?.remediation_required ?? "-")}</div>
+          <div class="metaItem"><b>recovery healthy:</b> ${esc(d.recovery_counts?.healthy ?? "-")}</div>
+          <div class="metaItem"><b>recovery observe:</b> ${esc(d.recovery_counts?.observe ?? "-")}</div>
+          <div class="metaItem"><b>recovery degraded:</b> ${esc(d.recovery_counts?.degraded ?? "-")}</div>
+          <div class="metaItem"><b>recovery blocked:</b> ${esc(d.recovery_counts?.blocked ?? "-")}</div>
+          <div class="metaItem"><b>branch guarded:</b> ${esc(d.branch_health_counts?.guarded ?? "-")}</div>
+          <div class="metaItem"><b>branch restricted:</b> ${esc(d.branch_health_counts?.restricted ?? "-")}</div>
+          <div class="metaItem"><b>branch blocked:</b> ${esc(d.branch_health_counts?.blocked ?? "-")}</div>
+          <div class="metaItem"><b>dispatch guarded:</b> ${esc(d.branch_health_counts?.dispatch_guarded ?? "-")}</div>
+          <div class="metaItem"><b>dispatch restricted:</b> ${esc(d.branch_health_counts?.dispatch_restricted ?? "-")}</div>
+          <div class="metaItem"><b>dispatch blocked:</b> ${esc(d.branch_health_counts?.dispatch_blocked ?? "-")}</div>
+          <div class="metaItem"><b>branch declining:</b> ${esc(d.branch_health_counts?.declining ?? "-")}</div>
+        </div>
+      </div>
+      <div class="sectionTitle">Active focus</div>
+      ${list(d.active_focus || [], item => `<li>${esc(item.title)} · ${esc(item.focus_area ?? "-")} · ${esc(item.status)}</li>`)}
+      <div class="sectionTitle">Branch health</div>
+      ${(d.branch_health || []).map(branchHealthCard).join("") || '<div class="card">-</div>'}
+      <div class="sectionTitle">Recovery workflows</div>
+      ${(d.recovery_workflows || []).map(recoveryWorkflowCard).join("") || '<div class="card">-</div>'}
+      <div class="sectionTitle">Plans</div>
+      ${(d.plans || []).map(planCard).join("") || '<div class="card">-</div>'}
+      <div class="sectionTitle">Recent events</div>
+      ${(d.events || []).map(eventCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Execution Runtime") {
+    if (d.preview) {
+      const p = d.preview;
+      return `
+        <div class="card">
+          <div class="sectionTitle">Execution Preview</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>title:</b> ${esc(p.title)}</div>
+            <div class="metaItem"><b>preferred_role:</b> ${esc(p.preferred_role ?? "-")}</div>
+          <div class="metaItem"><b>operation_id:</b> ${esc(p.operation_id)}</div>
+          <div class="metaItem"><b>branch_id:</b> ${esc(p.branch_id)}</div>
+          <div class="metaItem"><b>parent_branch:</b> ${esc(p.parent_branch_id ?? "-")}</div>
+          <div class="metaItem"><b>parent_operation:</b> ${esc(p.parent_operation_id ?? "-")}</div>
+          <div class="metaItem"><b>execution_mode:</b> ${esc(p.execution_mode)}</div>
+          <div class="metaItem"><b>timeout:</b> ${esc(p.failure_policy?.timeout_seconds ?? "-")}</div>
+          <div class="metaItem"><b>max_retries:</b> ${esc(p.failure_policy?.max_retries ?? "-")}</div>
+          <div class="metaItem"><b>rollback_on_error:</b> ${esc(p.failure_policy?.rollback_on_error ?? "-")}</div>
+          <div class="metaItem"><b>delta:</b> ${esc(p.delta?.summary ?? "-")}</div>
+        </div>
+        <div class="small"><b>compensation_plan</b></div>
+        ${list(p.compensation_plan || [], step => `<li>${esc(step.action)} · ${esc(step.description)}</li>`)}
+      </div>`;
+    }
+
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Execution Runtime</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>state_file:</b> ${esc(d.state_file)}</div>
+          <div class="metaItem"><b>operations total:</b> ${esc(d.operation_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>planned:</b> ${esc(d.operation_counts?.planned ?? "-")}</div>
+          <div class="metaItem"><b>in_progress:</b> ${esc(d.operation_counts?.in_progress ?? "-")}</div>
+          <div class="metaItem"><b>committed:</b> ${esc(d.operation_counts?.committed ?? "-")}</div>
+          <div class="metaItem"><b>failed:</b> ${esc(d.operation_counts?.failed ?? "-")}</div>
+          <div class="metaItem"><b>pending compensation:</b> ${esc(d.compensation_counts?.pending ?? "-")}</div>
+          <div class="metaItem"><b>completed compensation:</b> ${esc(d.compensation_counts?.completed ?? "-")}</div>
+          <div class="metaItem"><b>recovery total:</b> ${esc(d.recovery_operation_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>recovery in_progress:</b> ${esc(d.recovery_operation_counts?.in_progress ?? "-")}</div>
+          <div class="metaItem"><b>recovery committed:</b> ${esc(d.recovery_operation_counts?.committed ?? "-")}</div>
+          <div class="metaItem"><b>recovery failed:</b> ${esc(d.recovery_operation_counts?.failed ?? "-")}</div>
+          <div class="metaItem"><b>recovery comp pending:</b> ${esc(d.recovery_compensation_counts?.pending ?? "-")}</div>
+          <div class="metaItem"><b>recovery comp available:</b> ${esc(d.recovery_compensation_counts?.available ?? "-")}</div>
+          <div class="metaItem"><b>recovery comp completed:</b> ${esc(d.recovery_compensation_counts?.completed ?? "-")}</div>
+          <div class="metaItem"><b>branches:</b> ${esc(d.lineage?.branch_count ?? "-")}</div>
+          <div class="metaItem"><b>max branch depth:</b> ${esc(d.lineage?.max_branch_depth ?? "-")}</div>
+        </div>
+      </div>
+      <div class="sectionTitle">Operations</div>
+      ${(d.operations || []).map(operationCard).join("") || '<div class="card">-</div>'}
+      <div class="sectionTitle">Recent events</div>
+      ${(d.events || []).map(eventCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Operation Ledger") {
+    if (d.filters) {
+      return `
+        <div class="card">
+          <div class="sectionTitle">Operation Lineage View</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>operation_id:</b> ${esc(d.filters.operation_id ?? "-")}</div>
+            <div class="metaItem"><b>branch_id:</b> ${esc(d.filters.branch_id ?? "-")}</div>
+            <div class="metaItem"><b>limit:</b> ${esc(d.filters.limit ?? "-")}</div>
+          </div>
+        </div>
+        ${d.branch ? branchCard(d.branch) : ""}
+        <div class="sectionTitle">Lineage entries</div>
+        ${(d.entries || []).map(ledgerEntryCard).join("") || '<div class="card">-</div>'}`;
+    }
+
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Operation Ledger</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>state_file:</b> ${esc(d.state_file)}</div>
+          <div class="metaItem"><b>entries total:</b> ${esc(d.entry_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>failed events:</b> ${esc(d.entry_counts?.failed_events ?? "-")}</div>
+          <div class="metaItem"><b>committed events:</b> ${esc(d.entry_counts?.committed_events ?? "-")}</div>
+          <div class="metaItem"><b>compensated events:</b> ${esc(d.entry_counts?.compensated_events ?? "-")}</div>
+          <div class="metaItem"><b>recent failure count:</b> ${esc(d.feedback?.recent_failure_count ?? "-")}</div>
+          <div class="metaItem"><b>recent compensation count:</b> ${esc(d.feedback?.recent_compensation_count ?? "-")}</div>
+          <div class="metaItem"><b>branches total:</b> ${esc(d.branch_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>non_main branches:</b> ${esc(d.branch_counts?.non_main ?? "-")}</div>
+          <div class="metaItem"><b>max depth:</b> ${esc(d.branch_counts?.max_depth ?? "-")}</div>
+        </div>
+      </div>
+      <div class="sectionTitle">Repeated failures</div>
+      ${list(d.feedback?.repeated_failures || [], item => `<li>${esc(item.task_title)} · ${esc(item.count)}</li>`)}
+      <div class="sectionTitle">Recent deltas</div>
+      ${list(d.feedback?.recent_deltas || [], item => `<li>${esc(item.branch_id)} · ${esc(item.summary)}</li>`)}
+      <div class="sectionTitle">Branches</div>
+      ${(d.branches || []).map(branchCard).join("") || '<div class="card">-</div>'}
+      <div class="sectionTitle">Recent ledger entries</div>
+      ${(d.entries || []).map(ledgerEntryCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Snapshot Lineage") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Snapshot Lineage</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>state_file:</b> ${esc(d.state_file)}</div>
+          <div class="metaItem"><b>total snapshots:</b> ${esc(d.snapshot_counts?.total ?? "-")}</div>
+          <div class="metaItem"><b>branch_count:</b> ${esc(d.snapshot_counts?.branch_count ?? "-")}</div>
+          <div class="metaItem"><b>non_main branches:</b> ${esc(d.snapshot_counts?.non_main_branch_count ?? "-")}</div>
+          <div class="metaItem"><b>max_branch_depth:</b> ${esc(d.snapshot_counts?.max_branch_depth ?? "-")}</div>
+          <div class="metaItem"><b>filter branch:</b> ${esc(d.filters?.branch_id ?? "-")}</div>
+        </div>
+      </div>
+      <div class="sectionTitle">Snapshots</div>
+      ${(d.snapshots || []).map(snapshotCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Replay Plan") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Replay Plan</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>snapshot_id:</b> ${esc(d.filters?.snapshot_id ?? "-")}</div>
+          <div class="metaItem"><b>branch_id:</b> ${esc(d.filters?.branch_id ?? "-")}</div>
+          <div class="metaItem"><b>operation_id:</b> ${esc(d.filters?.operation_id ?? "-")}</div>
+          <div class="metaItem"><b>limit:</b> ${esc(d.filters?.limit ?? "-")}</div>
+        </div>
+      </div>
+      ${d.anchor_snapshot ? `
+        <div class="sectionTitle">Anchor snapshot</div>
+        ${snapshotCard(d.anchor_snapshot)}
+      ` : '<div class="card">No anchor snapshot</div>'}
+      ${d.branch ? `
+        <div class="sectionTitle">Branch context</div>
+        ${branchCard(d.branch)}
+      ` : ''}
+      <div class="sectionTitle">Replay steps</div>
+      ${list(d.replay_steps || [], item => `<li>${esc(item.logical_time)} · ${esc(item.summary)} · ${esc(item.delta ?? "-")}</li>`)}
+      <div class="sectionTitle">Replay entries</div>
+      ${(d.replay_entries || []).map(ledgerEntryCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Recovery Workflows") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Recovery Workflows</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>total:</b> ${esc(d.workflow_counts?.total ?? 0)}</div>
+          <div class="metaItem"><b>active:</b> ${esc(d.workflow_counts?.active ?? 0)}</div>
+          <div class="metaItem"><b>completed:</b> ${esc(d.workflow_counts?.completed ?? 0)}</div>
+          <div class="metaItem"><b>failed:</b> ${esc(d.workflow_counts?.failed ?? 0)}</div>
+          <div class="metaItem"><b>remediation blocked:</b> ${esc(d.workflow_counts?.remediation_blocked ?? 0)}</div>
+          <div class="metaItem"><b>healthy:</b> ${esc(d.workflow_counts?.healthy ?? 0)}</div>
+          <div class="metaItem"><b>observe:</b> ${esc(d.workflow_counts?.observe ?? 0)}</div>
+          <div class="metaItem"><b>degraded:</b> ${esc(d.workflow_counts?.degraded ?? 0)}</div>
+          <div class="metaItem"><b>blocked:</b> ${esc(d.workflow_counts?.blocked ?? 0)}</div>
+        </div>
+      </div>
+      ${(d.workflows || []).map(recoveryWorkflowCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Stabilization Playbooks") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Stabilization Playbooks</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>total:</b> ${esc(d.playbook_counts?.total ?? 0)}</div>
+          <div class="metaItem"><b>strong:</b> ${esc(d.playbook_counts?.strong ?? 0)}</div>
+          <div class="metaItem"><b>usable:</b> ${esc(d.playbook_counts?.usable ?? 0)}</div>
+          <div class="metaItem"><b>emerging:</b> ${esc(d.playbook_counts?.emerging ?? 0)}</div>
+          <div class="metaItem"><b>reuse_ready:</b> ${esc(d.playbook_counts?.reuse_ready ?? 0)}</div>
+        </div>
+      </div>
+      ${(d.branches || []).map(branch => `
+        <div class="card">
+          <div style="font-size:15px;font-weight:700;margin-bottom:6px;">${esc(branch.branch_id ?? "-")}</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>support:</b> ${esc(branch.support_level ?? "-")}</div>
+            <div class="metaItem"><b>reuse_ready:</b> ${esc(branch.reuse_ready ?? false)}</div>
+            <div class="metaItem"><b>success_rate:</b> ${esc(branch.success_rate ?? 0)}%</div>
+            <div class="metaItem"><b>records:</b> ${esc(branch.record_count ?? 0)}</div>
+            <div class="metaItem"><b>successful:</b> ${esc(branch.successful_records ?? 0)}</div>
+            <div class="metaItem"><b>failed:</b> ${esc(branch.failed_records ?? 0)}</div>
+            <div class="metaItem"><b>quality:</b> ${esc(branch.average_quality_score ?? "-")}</div>
+            <div class="metaItem"><b>confidence:</b> ${esc(branch.average_confidence_score ?? "-")}</div>
+            <div class="metaItem"><b>pressure:</b> ${esc(branch.dominant_pressure_level ?? "-")}</div>
+            <div class="metaItem"><b>dispatch:</b> ${esc(branch.dominant_dispatch_mode ?? "-")}</div>
+          </div>
+          <div class="small"><b>summary:</b> ${esc(branch.summary ?? "-")}</div>
+          ${branch.focus_areas?.length ? `<div class="small"><b>focus:</b> ${branch.focus_areas.map(esc).join(" · ")}</div>` : ""}
+          ${branch.recent_plan_ids?.length ? `<div class="small"><b>recent plans:</b> ${branch.recent_plan_ids.map(esc).join(" · ")}</div>` : ""}
+          ${branch.recommended_actions?.length ? `<div class="small"><b>recommended actions:</b> ${branch.recommended_actions.map(action => `${esc(action.title ?? action.key ?? "-")}${action.owner_hint ? ` · ${esc(action.owner_hint)}` : ""}`).join(" | ")}</div>` : ""}
+        </div>
+      `).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Branch Health") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Branch Health</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>total:</b> ${esc(d.branch_counts?.total ?? 0)}</div>
+          <div class="metaItem"><b>open:</b> ${esc(d.branch_counts?.open ?? 0)}</div>
+          <div class="metaItem"><b>guarded:</b> ${esc(d.branch_counts?.guarded ?? 0)}</div>
+          <div class="metaItem"><b>restricted:</b> ${esc(d.branch_counts?.restricted ?? 0)}</div>
+          <div class="metaItem"><b>blocked:</b> ${esc(d.branch_counts?.blocked ?? 0)}</div>
+          <div class="metaItem"><b>dispatch guarded:</b> ${esc(d.branch_counts?.dispatch_guarded ?? 0)}</div>
+          <div class="metaItem"><b>dispatch restricted:</b> ${esc(d.branch_counts?.dispatch_restricted ?? 0)}</div>
+          <div class="metaItem"><b>dispatch blocked:</b> ${esc(d.branch_counts?.dispatch_blocked ?? 0)}</div>
+          <div class="metaItem"><b>improving:</b> ${esc(d.branch_counts?.improving ?? 0)}</div>
+          <div class="metaItem"><b>stable:</b> ${esc(d.branch_counts?.stable ?? 0)}</div>
+          <div class="metaItem"><b>declining:</b> ${esc(d.branch_counts?.declining ?? 0)}</div>
+          <div class="metaItem"><b>volatile:</b> ${esc(d.branch_counts?.volatile ?? 0)}</div>
+          <div class="metaItem"><b>pressure medium:</b> ${esc(d.branch_counts?.pressure_medium ?? 0)}</div>
+          <div class="metaItem"><b>pressure high:</b> ${esc(d.branch_counts?.pressure_high ?? 0)}</div>
+          <div class="metaItem"><b>pressure critical:</b> ${esc(d.branch_counts?.pressure_critical ?? 0)}</div>
+          <div class="metaItem"><b>playbooks total:</b> ${esc(d.playbook_counts?.total ?? 0)}</div>
+          <div class="metaItem"><b>playbooks strong:</b> ${esc(d.playbook_counts?.strong ?? 0)}</div>
+          <div class="metaItem"><b>playbooks usable:</b> ${esc(d.playbook_counts?.usable ?? 0)}</div>
+          <div class="metaItem"><b>playbooks ready:</b> ${esc(d.playbook_counts?.reuse_ready ?? 0)}</div>
+        </div>
+      </div>
+      ${(d.branches || []).map(branchHealthCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Recovery Demo Seed") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Recovery Demo Seed</div>
+        <div class="small">${esc(d.message ?? "-")}</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>seeded_workflow_count:</b> ${esc(d.seeded_workflow_count ?? 0)}</div>
+          <div class="metaItem"><b>seeded_branch_count:</b> ${esc(d.seeded_branch_count ?? 0)}</div>
+          <div class="metaItem"><b>reset_existing:</b> ${esc(d.reset_existing ?? false)}</div>
+          <div class="metaItem"><b>removed_demo_plans:</b> ${esc(d.removed?.removed_plan_count ?? 0)}</div>
+          <div class="metaItem"><b>cleared_demo_branches:</b> ${esc(d.removed?.cleared_branch_count ?? 0)}</div>
+          <div class="metaItem"><b>demo_branches:</b> ${Array.isArray(d.demo_branches) && d.demo_branches.length ? d.demo_branches.map(esc).join(" · ") : "-"}</div>
+        </div>
+      </div>
+      <div class="sectionTitle">Demo branch health</div>
+      ${(d.branch_health || []).map(branchHealthCard).join("") || '<div class="card">-</div>'}
+      <div class="sectionTitle">Demo recovery workflows</div>
+      ${(d.recovery_workflows || []).map(recoveryWorkflowCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Recovery Workflow Advance") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Recovery Workflow Advance</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>plan_id:</b> ${esc(d.plan_id ?? "-")}</div>
+          <div class="metaItem"><b>branch_id:</b> ${esc(d.branch_id ?? "-")}</div>
+          <div class="metaItem"><b>advance_target:</b> ${esc(d.advance_target ?? "recovery")}</div>
+          <div class="metaItem"><b>auto_dispatch:</b> ${esc(d.auto_dispatch ?? false)}</div>
+          <div class="metaItem"><b>auto_compensate:</b> ${esc(d.auto_compensate ?? false)}</div>
+          <div class="metaItem"><b>compensated_count:</b> ${esc(d.compensation?.compensated_count ?? 0)}</div>
+          <div class="metaItem"><b>queued_count:</b> ${esc(d.queue?.queued_count ?? 0)}</div>
+          <div class="metaItem"><b>dispatch_count:</b> ${esc(d.dispatch?.dispatch_count ?? 0)}</div>
+          <div class="metaItem"><b>phase:</b> ${esc(d.workflow?.current_phase ?? "-")}</div>
+          <div class="metaItem"><b>remediation_status:</b> ${esc(d.remediation?.summary?.status ?? "-")}</div>
+          <div class="metaItem"><b>remediation_plan:</b> ${esc(d.remediation?.summary?.plan_id ?? "-")}</div>
+        </div>
+        <div class="small"><b>next:</b> ${Array.isArray(d.next_actions) && d.next_actions.length ? d.next_actions.map(action => `${esc(action.type ?? "-")}${action.phase ? ` · ${esc(action.phase)}` : ""}`).join(" | ") : "-"}</div>
+      </div>
+      ${d.workflow ? recoveryWorkflowCard({...d.workflow, plan_id: d.plan_id, title: d.plan?.title}) : ""}
+      ${d.remediation?.plan ? planCard(d.remediation.plan) : ""}
+      <div class="sectionTitle">Dispatch assignments</div>
+      ${(d.dispatch?.assignments || []).map(dispatchAssignmentCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.service === "AI OS Remediation Workflow Advance") {
+    return `
+      <div class="card">
+        <div class="sectionTitle">AI OS Remediation Workflow Advance</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>plan_id:</b> ${esc(d.plan_id ?? "-")}</div>
+          <div class="metaItem"><b>parent_recovery_plan:</b> ${esc(d.parent_recovery_plan_id ?? "-")}</div>
+          <div class="metaItem"><b>queued_count:</b> ${esc(d.queue?.queued_count ?? 0)}</div>
+          <div class="metaItem"><b>dispatch_count:</b> ${esc(d.dispatch?.dispatch_count ?? 0)}</div>
+        </div>
+      </div>
+      ${d.plan ? planCard(d.plan) : ""}
+      <div class="sectionTitle">Dispatch assignments</div>
+      ${(d.dispatch?.assignments || []).map(dispatchAssignmentCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.status === "ok" && d.service) {
+    if (d.paths && d.counts && d.available) {
+      return `
+        <div class="card">
+          <div class="sectionTitle">AI OS Memory Pipeline</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>service:</b> ${esc(d.service)}</div>
+            <div class="metaItem"><b>status:</b> ${esc(d.status)}</div>
+            <div class="metaItem"><b>chat_files:</b> ${esc(d.counts.chat_files)}</div>
+            <div class="metaItem"><b>parsed_chats:</b> ${esc(d.counts.parsed_chats)}</div>
+            <div class="metaItem"><b>knowledge_topics:</b> ${esc(d.counts.knowledge_topics)}</div>
+            <div class="metaItem"><b>vector_items:</b> ${esc(d.counts.vector_items)}</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sectionTitle">Artifacts</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>index:</b> ${esc(d.available.index)}</div>
+            <div class="metaItem"><b>parsed:</b> ${esc(d.available.parsed)}</div>
+            <div class="metaItem"><b>knowledge:</b> ${esc(d.available.knowledge)}</div>
+            <div class="metaItem"><b>vectors:</b> ${esc(d.available.vectors)}</div>
+          </div>
+          <div class="small">${esc(d.paths.memory_dir)}</div>
+        </div>`;
+    }
+
+    if (d.agent_counts && Array.isArray(d.agents) && Array.isArray(d.tasks)) {
+      return `
+        <div class="card">
+          <div class="sectionTitle">AI OS Agent Runtime</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>service:</b> ${esc(d.service)}</div>
+            <div class="metaItem"><b>status:</b> ${esc(d.status)}</div>
+            <div class="metaItem"><b>state_file:</b> ${esc(d.state_file ?? "-")}</div>
+            <div class="metaItem"><b>agents total:</b> ${esc(d.agent_counts.total)}</div>
+            <div class="metaItem"><b>tasks total:</b> ${esc(d.task_counts.total)}</div>
+            <div class="metaItem"><b>queued:</b> ${esc(d.task_counts.queued)}</div>
+            <div class="metaItem"><b>in_progress:</b> ${esc(d.task_counts.in_progress)}</div>
+          </div>
+        </div>
+        <div class="sectionTitle">Агенты</div>
+        ${(d.agents || []).map(agentCard).join("") || '<div class="card">-</div>'}
+        <div class="sectionTitle">Задачи</div>
+        ${(d.tasks || []).map(taskCard).join("") || '<div class="card">-</div>'}
+        <div class="sectionTitle">Последние события</div>
+        ${(d.events || []).map(eventCard).join("") || '<div class="card">-</div>'}`;
+    }
+
+    if (d.service === "AI OS Recovery Plan Preview") {
+      return `
+        <div class="card">
+          <div class="sectionTitle">Recovery Plan Preview</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>title:</b> ${esc(d.title ?? "-")}</div>
+            <div class="metaItem"><b>branch_id:</b> ${esc(d.branch_id ?? "-")}</div>
+            <div class="metaItem"><b>snapshot_id:</b> ${esc(d.snapshot_id ?? "-")}</div>
+            <div class="metaItem"><b>replay_step_count:</b> ${esc(d.replay_step_count ?? 0)}</div>
+            <div class="metaItem"><b>planned_replay_step_count:</b> ${esc(d.planned_replay_step_count ?? 0)}</div>
+            <div class="metaItem"><b>max_parallel_steps:</b> ${esc(d.max_parallel_steps ?? 1)}</div>
+            <div class="metaItem"><b>max_replay_steps:</b> ${esc(d.max_replay_steps ?? 0)}</div>
+            <div class="metaItem"><b>recovery_mode:</b> ${esc(d.context?.recovery_mode ?? "-")}</div>
+          </div>
+          <div class="small">${esc(d.context?.replay_summary ?? "-")}</div>
+        </div>
+        ${d.anchor_snapshot ? snapshotCard(d.anchor_snapshot) : ""}
+        <div class="sectionTitle">Planned steps</div>
+        ${list(d.task_specs || [], step => `<li>${esc(step.step_key)} · ${esc(step.title)} · ${esc(step.metadata?.owner_hint ?? "-")}${Array.isArray(step.depends_on) && step.depends_on.length ? ` · depends_on=${step.depends_on.map(esc).join(", ")}` : ""}${step.metadata?.replay_logical_time !== undefined ? ` · t=${esc(step.metadata.replay_logical_time)}` : ""}</li>`)}
+        <div class="sectionTitle">Replay preview</div>
+        ${(d.context?.replay_entries_preview || []).map(ledgerEntryCard).join("") || '<div class="card">-</div>'}`;
+    }
+
+    if (d.service === "AI OS Agent Role Policy") {
+      if (d.agent && Array.isArray(d.candidates)) {
+        return `
+          <div class="card">
+            <div class="sectionTitle">Agent Policy Preview</div>
+            <div class="metaGrid">
+              <div class="metaItem"><b>agent:</b> ${esc(d.agent.name ?? d.agent.id ?? "-")}</div>
+              <div class="metaItem"><b>role:</b> ${esc(d.agent.role ?? "-")}</div>
+              <div class="metaItem"><b>status:</b> ${esc(d.agent.status ?? "-")}</div>
+              <div class="metaItem"><b>queued_task_count:</b> ${esc(d.queued_task_count ?? 0)}</div>
+            </div>
+          </div>
+          ${d.current_task ? `<div class="sectionTitle">Current task</div>${taskCard(d.current_task)}` : ""}
+          <div class="sectionTitle">Recommended tasks</div>
+          ${(d.candidates || []).map(rec => `
+            <div class="card">
+              <div style="font-size:15px;font-weight:700;"><span class="muted">[#${esc(rec.task_id)}]</span> ${esc(rec.title)}</div>
+              <div class="small">score ${esc(rec.score ?? "-")} · ${esc(rec.plan_kind ?? "-")} · ${esc(rec.branch_id ?? "-")}</div>
+              <div class="small">${Array.isArray(rec.reasons) && rec.reasons.length ? rec.reasons.map(esc).join(" | ") : "-"}</div>
+            </div>
+          `).join("") || '<div class="card">-</div>'}`;
+      }
+
+      return `
+        <div class="card">
+          <div class="sectionTitle">AI OS Agent Role Policy</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>agents total:</b> ${esc(d.agent_counts?.total ?? 0)}</div>
+            <div class="metaItem"><b>idle:</b> ${esc(d.agent_counts?.idle ?? 0)}</div>
+            <div class="metaItem"><b>busy:</b> ${esc(d.agent_counts?.busy ?? 0)}</div>
+            <div class="metaItem"><b>queued:</b> ${esc(d.task_counts?.queued ?? 0)}</div>
+            <div class="metaItem"><b>assignment_count:</b> ${esc(d.assignment_count ?? 0)}</div>
+          </div>
+        </div>
+        <div class="sectionTitle">Dispatch recommendations</div>
+        ${(d.recommendations || []).map(policyRecommendationCard).join("") || '<div class="card">-</div>'}
+        <div class="sectionTitle">Capability pressure</div>
+        ${list(d.required_capabilities || [], item => `<li>${esc(item.capability)} · ${esc(item.count)}</li>`)}`;
+    }
+
+    if (d.service === "AI OS Agent Dispatch") {
+      return `
+        <div class="card">
+          <div class="sectionTitle">AI OS Agent Dispatch</div>
+          <div class="metaGrid">
+            <div class="metaItem"><b>dispatch_count:</b> ${esc(d.dispatch_count ?? 0)}</div>
+            <div class="metaItem"><b>errors:</b> ${esc((d.errors || []).length)}</div>
+            <div class="metaItem"><b>queued_after:</b> ${esc(d.snapshot?.task_counts?.queued ?? "-")}</div>
+            <div class="metaItem"><b>in_progress_after:</b> ${esc(d.snapshot?.task_counts?.in_progress ?? "-")}</div>
+          </div>
+        </div>
+        <div class="sectionTitle">Assignments</div>
+        ${(d.assignments || []).map(dispatchAssignmentCard).join("") || '<div class="card">-</div>'}
+        <div class="sectionTitle">Errors</div>
+        ${list(d.errors || [], item => `<li>${esc(item.agent_id ?? "-")} -> ${esc(item.task_id ?? "-")} · ${esc(item.reason ?? "-")}</li>`)}
+        <div class="sectionTitle">Policy Preview</div>
+        ${(d.policy_preview?.recommendations || []).map(policyRecommendationCard).join("") || '<div class="card">-</div>'}`;
+    }
+
+    return `
+      <div class="card">
+        <div class="sectionTitle">Состояние сервиса</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>service:</b> ${esc(d.service)}</div>
+          <div class="metaItem"><b>status:</b> ${esc(d.status)}</div>
+          <div class="metaItem"><b>memory_count:</b> ${esc(d.memory_count)}</div>
+          ${d.agents_total !== undefined ? `<div class="metaItem"><b>agents_total:</b> ${esc(d.agents_total)}</div>` : ""}
+          ${d.tasks_queued !== undefined ? `<div class="metaItem"><b>tasks_queued:</b> ${esc(d.tasks_queued)}</div>` : ""}
+          ${d.cognitive_loop_running !== undefined ? `<div class="metaItem"><b>cognitive_loop_running:</b> ${esc(d.cognitive_loop_running)}</div>` : ""}
+          ${d.cognitive_cycles !== undefined ? `<div class="metaItem"><b>cognitive_cycles:</b> ${esc(d.cognitive_cycles)}</div>` : ""}
+          ${d.planner_active !== undefined ? `<div class="metaItem"><b>planner_active:</b> ${esc(d.planner_active)}</div>` : ""}
+          ${d.planner_blocked_steps !== undefined ? `<div class="metaItem"><b>planner_blocked_steps:</b> ${esc(d.planner_blocked_steps)}</div>` : ""}
+          ${d.planner_remediation_plans !== undefined ? `<div class="metaItem"><b>planner_remediation_plans:</b> ${esc(d.planner_remediation_plans)}</div>` : ""}
+          ${d.planner_recovery_workflows !== undefined ? `<div class="metaItem"><b>planner_recovery_workflows:</b> ${esc(d.planner_recovery_workflows)}</div>` : ""}
+          ${d.planner_recovery_remediation_blocked !== undefined ? `<div class="metaItem"><b>planner_recovery_remediation_blocked:</b> ${esc(d.planner_recovery_remediation_blocked)}</div>` : ""}
+          ${d.planner_recovery_healthy !== undefined ? `<div class="metaItem"><b>planner_recovery_healthy:</b> ${esc(d.planner_recovery_healthy)}</div>` : ""}
+          ${d.planner_recovery_observe !== undefined ? `<div class="metaItem"><b>planner_recovery_observe:</b> ${esc(d.planner_recovery_observe)}</div>` : ""}
+          ${d.planner_recovery_degraded !== undefined ? `<div class="metaItem"><b>planner_recovery_degraded:</b> ${esc(d.planner_recovery_degraded)}</div>` : ""}
+          ${d.planner_recovery_blocked !== undefined ? `<div class="metaItem"><b>planner_recovery_blocked:</b> ${esc(d.planner_recovery_blocked)}</div>` : ""}
+          ${d.planner_branch_guarded !== undefined ? `<div class="metaItem"><b>planner_branch_guarded:</b> ${esc(d.planner_branch_guarded)}</div>` : ""}
+          ${d.planner_branch_restricted !== undefined ? `<div class="metaItem"><b>planner_branch_restricted:</b> ${esc(d.planner_branch_restricted)}</div>` : ""}
+          ${d.planner_branch_blocked !== undefined ? `<div class="metaItem"><b>planner_branch_blocked:</b> ${esc(d.planner_branch_blocked)}</div>` : ""}
+          ${d.planner_dispatch_guarded !== undefined ? `<div class="metaItem"><b>planner_dispatch_guarded:</b> ${esc(d.planner_dispatch_guarded)}</div>` : ""}
+          ${d.planner_dispatch_restricted !== undefined ? `<div class="metaItem"><b>planner_dispatch_restricted:</b> ${esc(d.planner_dispatch_restricted)}</div>` : ""}
+          ${d.planner_dispatch_blocked !== undefined ? `<div class="metaItem"><b>planner_dispatch_blocked:</b> ${esc(d.planner_dispatch_blocked)}</div>` : ""}
+          ${d.planner_branch_declining !== undefined ? `<div class="metaItem"><b>planner_branch_declining:</b> ${esc(d.planner_branch_declining)}</div>` : ""}
+          ${d.planner_branch_pressure_medium !== undefined ? `<div class="metaItem"><b>planner_branch_pressure_medium:</b> ${esc(d.planner_branch_pressure_medium)}</div>` : ""}
+          ${d.planner_branch_pressure_high !== undefined ? `<div class="metaItem"><b>planner_branch_pressure_high:</b> ${esc(d.planner_branch_pressure_high)}</div>` : ""}
+          ${d.planner_branch_pressure_critical !== undefined ? `<div class="metaItem"><b>planner_branch_pressure_critical:</b> ${esc(d.planner_branch_pressure_critical)}</div>` : ""}
+          ${d.execution_failed !== undefined ? `<div class="metaItem"><b>execution_failed:</b> ${esc(d.execution_failed)}</div>` : ""}
+          ${d.execution_pending_compensation !== undefined ? `<div class="metaItem"><b>execution_pending_compensation:</b> ${esc(d.execution_pending_compensation)}</div>` : ""}
+          ${d.execution_recovery_in_progress !== undefined ? `<div class="metaItem"><b>execution_recovery_in_progress:</b> ${esc(d.execution_recovery_in_progress)}</div>` : ""}
+        </div>
+      </div>`;
+  }
+
+  if (d && Array.isArray(d.official_runtime) && Array.isArray(d.legacy_paths)) {
+    const manifestBlock = (title, items) => `
+      <div class="card">
+        <div class="sectionTitle">${title}</div>
+        ${list(items, item => `<li>${esc(item)}</li>`)}
+      </div>`;
+
+    return `
+      ${manifestBlock("Official Runtime", d.official_runtime)}
+      ${manifestBlock("Official Packages", d.official_packages || [])}
+      ${manifestBlock("Developer Docs", d.developer_docs || [])}
+      ${manifestBlock("Development Workspace", d.development_workspace || [])}
+      ${manifestBlock("Data Paths", d.data_paths || [])}
+      ${manifestBlock("Legacy Paths", d.legacy_paths || [])}
+      ${manifestBlock("Archive Paths", d.archive_paths || [])}`;
+  }
+
+  if (d && d.name && d.data && d.data.snapshot_created_at) {
+    const s = d.data;
+    const lineage = d.lineage || s.snapshot_lineage || {};
+    return `
+      <div class="card">
+        <div class="sectionTitle">Последний snapshot</div>
+        <div class="metaGrid">
+          <div class="metaItem"><b>file:</b> ${esc(d.name)}</div>
+          <div class="metaItem"><b>created:</b> ${esc(s.snapshot_created_at)}</div>
+          <div class="metaItem"><b>memory_count:</b> ${esc(s.memory_count)}</div>
+          <div class="metaItem"><b>graph_nodes:</b> ${esc(s.graph_nodes)}</div>
+          <div class="metaItem"><b>graph_relations:</b> ${esc(s.graph_relations_total)}</div>
+          <div class="metaItem"><b>last_updated:</b> ${esc(s.last_updated || "-")}</div>
+          <div class="metaItem"><b>snapshot_id:</b> ${esc(lineage.snapshot_id ?? "-")}</div>
+          <div class="metaItem"><b>branch_id:</b> ${esc(lineage.branch_id ?? "-")}</div>
+          <div class="metaItem"><b>parent_snapshot:</b> ${esc(lineage.parent_snapshot_id ?? "-")}</div>
+        </div>
+      </div>
+      <div class="sectionTitle">Последние записи</div>
+      ${(s.recent_blocks || []).map(itemCard).join("") || '<div class="card">-</div>'}
+      <div class="sectionTitle">Top по запросу "память"</div>
+      ${(s.memory_query_top || []).map(itemCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && typeof d.count === "number" && Array.isArray(d.items)) {
+    return `
+      <div class="card">
+        <div class="sectionTitle">Список snapshot</div>
+        <div class="metaItem"><b>count:</b> ${esc(d.count)}</div>
+      </div>
+      ${d.items.map(x => `
+        <div class="card">
+          <div style="font-size:15px;font-weight:700;">${esc(x.name)}</div>
+          <div class="small">${esc(x.size)} bytes</div>
+        </div>`).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && typeof d.memory_count === "number" && Array.isArray(d.items)) {
+    return `
+      <div class="card">
+        <div class="sectionTitle">Все записи памяти</div>
+        <div class="metaItem"><b>memory_count:</b> ${esc(d.memory_count)}</div>
+      </div>
+      ${d.items.map(itemCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.label && typeof d.matches === "number" && Array.isArray(d.items) && d.items.length && d.items[0].title) {
+    return `
+      <div class="card">
+        <div class="sectionTitle">${esc(d.label)}</div>
+        <div class="metaItem"><b>matches:</b> ${esc(d.matches)}</div>
+      </div>
+      ${d.items.map(taskCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && typeof d.matches === "number" && Array.isArray(d.items)) {
+    const label = d.query ? `Результаты поиска: ${esc(d.query)}` :
+                  d.tag ? `Результаты по тегу: ${esc(d.tag)}` :
+                  d.id ? `Связанные записи для #${esc(d.id)}` :
+                  d.limit ? `Последние записи (limit=${esc(d.limit)})` :
+                  "Результаты";
+    return `
+      <div class="card">
+        <div class="sectionTitle">${label}</div>
+        <div class="metaItem"><b>matches:</b> ${esc(d.matches)}</div>
+      </div>
+      ${d.items.map(itemCard).join("") || '<div class="card">-</div>'}`;
+  }
+
+  if (d && d.status === "ok" && d.message) {
+    return `
+      <div class="card">
+        <div class="sectionTitle">${esc(d.message)}</div>
+        ${d.file ? `<div class="small">${esc(d.file)}</div>` : ""}
+        <div class="metaGrid">
+          ${d.memory_count !== undefined ? `<div class="metaItem"><b>memory_count:</b> ${esc(d.memory_count)}</div>` : ""}
+          ${d.graph_nodes !== undefined ? `<div class="metaItem"><b>graph_nodes:</b> ${esc(d.graph_nodes)}</div>` : ""}
+          ${d.graph_relations_total !== undefined ? `<div class="metaItem"><b>graph_relations_total:</b> ${esc(d.graph_relations_total)}</div>` : ""}
+          ${d.agent_counts ? `<div class="metaItem"><b>agents_total:</b> ${esc(d.agent_counts.total)}</div>` : ""}
+          ${d.task_counts ? `<div class="metaItem"><b>tasks_total:</b> ${esc(d.task_counts.total)}</div>` : ""}
+        </div>
+      </div>
+      ${d.item ? itemCard(d.item) : ""}
+      ${d.agent ? agentCard(d.agent) : ""}
+      ${d.task ? taskCard(d.task) : ""}
+      ${d.plan ? planCard(d.plan) : ""}`;
+  }
+
+  return `<pre>${JSON.stringify(d, null, 2)}</pre>`;
+}
+
+async function show(url){
+  const r = await fetch(url);
+  out.innerHTML = render(await r.json());
+}
+async function post(url, body){
+  const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json; charset=utf-8'},body:JSON.stringify(body)});
+  out.innerHTML = render(await r.json());
+}
+async function getJson(url){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url} -> ${r.status}`);
+  return await r.json();
+}
+async function loadOverview(){
+  out.innerHTML = `
+    <div class="emptyState">
+      <div>
+        <div class="sectionTitle">Loading AI OS overview</div>
+        <div>Собираю health, planner, recovery, branch health, execution, agents и memory pipeline в единый операторский срез.</div>
+      </div>
+    </div>`;
+
+  const [health, planner, branchHealth, recovery, execution, agents, memory] = await Promise.all([
+    getJson('/health').catch(() => null),
+    getJson('/planner/status?limit=4').catch(() => null),
+    getJson('/planner/branch-health?limit=4').catch(() => null),
+    getJson('/planner/recovery/workflows?limit=4').catch(() => null),
+    getJson('/execution/status').catch(() => null),
+    getJson('/agents/status').catch(() => null),
+    getJson('/memory/corpus/status').catch(() => null),
+  ]);
+
+  out.innerHTML = render({
+    status: 'ok',
+    service: 'AI OS Overview',
+    health,
+    planner,
+    branchHealth,
+    recovery,
+    execution,
+    agents,
+    memory,
+  });
+}
+
+function queueAgentTask(){
+  const title = agentTask.value.trim();
+  if (!title) {
+    warn('Введите описание задачи');
+    return;
+  }
+  const branchId = agentTaskBranch.value.trim() || 'main';
+  const timeoutSeconds = Number(agentTaskTimeout.value || 120);
+  const maxRetries = Number(agentTaskRetries.value || 1);
+
+  post('/agents/task', {
+    title,
+    branch_id: branchId,
+    execution_mode: 'commit',
+    failure_policy: {
+      timeout_seconds: timeoutSeconds,
+      max_retries: maxRetries,
+      retry_backoff_seconds: 5,
+      degraded_mode: 'report_only',
+      rollback_on_error: true
+    },
+    compensation_plan: [
+      {
+        action: 'release_task_claim',
+        description: 'Release the task claim and preserve only execution trace if the task fails.'
+      }
+    ],
+    metadata: {
+      source: 'dashboard'
+    }
+  });
+}
+
+function previewAgentTask(){
+  const title = agentTask.value.trim();
+  if (!title) {
+    warn('Введите описание задачи');
+    return;
+  }
+  const branchId = agentTaskBranch.value.trim() || 'main';
+  const timeoutSeconds = Number(agentTaskTimeout.value || 120);
+  const maxRetries = Number(agentTaskRetries.value || 1);
+
+  post('/execution/preview', {
+    title,
+    branch_id: branchId,
+    execution_mode: 'commit',
+    failure_policy: {
+      timeout_seconds: timeoutSeconds,
+      max_retries: maxRetries,
+      retry_backoff_seconds: 5,
+      degraded_mode: 'report_only',
+      rollback_on_error: true
+    },
+    compensation_plan: [
+      {
+        action: 'release_task_claim',
+        description: 'Release the task claim and preserve only execution trace if the task fails.'
+      }
+    ],
+    metadata: {
+      source: 'dashboard'
+    }
+  });
+}
+
+function policyAgentPreview(){
+  const agentId = policyAgentId.value.trim();
+  if (!agentId) {
+    warn('Введите agent_id для policy preview');
+    return;
+  }
+  show('/agents/policy?agent_id='+enc(agentId)+'&limit='+enc(dispatchLimit.value || 3));
+}
+
+function dispatchQueuedTasks(){
+  post('/agents/dispatch', {limit: Number(dispatchLimit.value || 3)});
+}
+
+function compensateTask(){
+  const taskId = compensateTaskId.value.trim();
+  if (!taskId) {
+    warn('Введите task_id для compensation');
+    return;
+  }
+  post('/execution/compensate', {
+    task_id: Number(taskId),
+    reason: compensateReason.value.trim() || 'manual compensation from dashboard'
+  });
+}
+
+function plannerRecovery(){
+  const branchId = recoveryBranch.value.trim() || 'main';
+  const maxReplaySteps = Number(recoveryReplaySteps.value || 6);
+  post('/planner/recovery', {
+    branch_id: branchId,
+    title: `Snapshot replay recovery plan for branch: ${branchId}`,
+    max_parallel_steps: 1,
+    max_replay_steps: maxReplaySteps,
+    auto_compensate: true
+  });
+}
+
+function previewPlannerRecovery(){
+  const branchId = recoveryBranch.value.trim() || 'main';
+  const maxReplaySteps = Number(recoveryReplaySteps.value || 6);
+  show('/planner/recovery/preview?branch_id='+enc(branchId)+'&max_parallel_steps=1&max_replay_steps='+enc(maxReplaySteps));
+}
+
+function seedRecoveryDemo(){
+  post('/planner/recovery/demo', {
+    reset_existing: true
+  });
+}
+
+function advancePlannerRecovery(){
+  const branchId = recoveryBranch.value.trim() || 'main';
+  const planId = recoveryPlanId.value.trim();
+  post('/planner/recovery/advance', {
+    plan_id: planId || null,
+    branch_id: branchId,
+    auto_dispatch: true,
+    auto_compensate: true,
+    dispatch_limit: Number(dispatchLimit.value || 3)
+  });
+}
+
+loadOverview();
+</script>
+</body>
+</html>

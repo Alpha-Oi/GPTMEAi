@@ -1,0 +1,58 @@
+# GPTMEAi is a mixed workspace. Track the canonical source tree only.
+/*
+
+# Repository metadata and canonical root files.
+!/.gitignore
+!/.env.example
+!/AGENTS.md
+!/README.md
+!/AI_OS_DEVELOPMENT_INVARIANTS.md
+!/AI_OS_LAYER_TECHNICAL_SPEC.md
+!/AI_OS_PROJECT_AUDIT.md
+!/run_ai_os.py
+!/run_ai_os.ps1
+
+# Canonical runtime, packages, interface, docs, and development evidence.
+!/ai_os/
+!/agents/
+!/planning/
+!/execution/
+!/core/
+!/memory/
+!/scripts/
+!/dashboard/
+!/docs/
+!/development/
+
+# Protected runtime and user-data zones inside included trees.
+/memory/chats/
+/memory/parsed/
+/memory/knowledge/
+/memory/embeddings/
+/memory/index/
+/memory/db.json
+/development/logs/
+/development/tmp/
+
+# Explicit legacy/archive files inside otherwise canonical paths.
+/core/cognitive_loop_api.py
+/core/cognitive_loop_api_v2.py
+/scripts/api_gui_integration.py
+/scripts/api_gui_integration.py.bak
+
+# Generated Python, test, editor, and operating-system artifacts.
+**/__pycache__/
+*.py[cod]
+*.pyc.*
+*.bak
+*.log
+*.tmp
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
