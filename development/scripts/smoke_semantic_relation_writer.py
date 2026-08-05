@@ -119,9 +119,12 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             strict_payload,
             relation_contract_version=CONTRACT_VERSION,
         )
-        direct_relations = direct_node.to_dict()["relations"]
+        direct_relations = direct_node.relations
         checks["validator_opt_in_accepts_exact_contract"] = direct_relations == strict_payload["relations"]
-        checks["validator_returns_fresh_relations"] = direct_relations is not strict_payload["relations"]
+        checks["validator_returns_fresh_relation_list"] = direct_relations is not strict_payload["relations"]
+        checks["validator_returns_fresh_relation_items"] = (
+            direct_relations[0] is not strict_payload["relations"][0]
+        )
         checks["validator_does_not_mutate_input"] = strict_payload == strict_payload_before
 
         strict_block = engine.add_concept_node(
