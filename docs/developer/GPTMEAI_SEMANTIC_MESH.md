@@ -269,14 +269,23 @@ Stage F1 is implemented by `ai_os/semantic_relation_contract.py` and verified by
 `development/scripts/smoke_semantic_relation_contract.py`.
 
 F1 validates and returns a fresh canonical copy of an in-memory
-`semantic_relation.v1` relation list. It has no writer integration, target
-lookup, API route, storage mutation, migration, backfill, reverse-edge creation,
-or runtime/planner/dispatch effect. Existing permissive Concept Core relation
-handling and legacy `/memory/add` behavior remain unchanged.
+`semantic_relation.v1` relation list without target lookup, I/O, or input
+mutation.
 
-A future Stage F2 writer integration requires a separate contract, RED/GREEN
-smokes, and explicit approval. It must be exact opt-in and preserve legacy
-`/memory/add` behavior.
+Stage F2A adds direct-library exact opt-in writer wiring through the keyword-only
+`relation_contract_version` parameter on `MemoryCommitValidator.validate(...)`
+and `MemoryEngine.add_concept_node(...)`. The default `None` preserves existing
+permissive Concept Core relation handling. Any explicit non-`None` value invokes
+the F1 validator before `MemoryEngine.add(...)`; only exact
+`semantic_relation.v1` is accepted, missing `relations` defaults to `[]`, and an
+explicit non-list value is rejected with a typed contract error before writing.
+The canonical relation copy is stored in the existing
+`metadata.concept_core.relations` field.
+
+F2A adds no API opt-in and does not change `/memory/add`, storage schemas,
+migrations, backfills, target lookup, reverse-edge creation, Semantic Mesh read
+semantics, planner, dispatch, replay, or default runtime behavior. A future API
+writer opt-in remains separately approval-gated.
 
 ## 9. Safety invariants
 
@@ -302,6 +311,9 @@ Future verification expectations:
 - prove Stage F1 accepts only exact `semantic_relation.v1` authored payloads;
 - prove Stage F1 performs no target lookup, file writes, runtime mutation, or input mutation;
 - keep the Stage F1 validator import allowlist limited to `__future__`;
+- prove Stage F2A validates only explicit direct-library opt-in writes before storage mutation;
+- prove Stage F2A preserves the default permissive writer and unchanged `/memory/add` behavior;
+- prove invalid Stage F2A payloads preserve typed F1 errors and do not write blocks;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -318,5 +330,6 @@ Rollback by stage:
 - API preview: remove the route and smoke, then verify legacy routes and status surfaces.
 - Planner/Cognitive adapter: remove the advisory adapter and opt-in `CognitiveLoop.plan(...)` wiring, then verify continuity smokes.
 - Relation contract: remove the pure validator and focused smoke, then revert the Stage F1 documentation update.
+- Relation writer wiring: remove the keyword-only forwarding from `MemoryCommitValidator` and `MemoryEngine`, remove the writer smoke, then rerun Concept Core and memory route verification.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.

@@ -328,7 +328,12 @@ class SafetyGuard:
 class MemoryCommitValidator:
     """Validates source-backed memory nodes before any future commit step."""
 
-    def validate(self, payload: dict[str, Any]) -> MemoryNode:
+    def validate(
+        self,
+        payload: dict[str, Any],
+        *,
+        relation_contract_version: str | None = None,
+    ) -> MemoryNode:
         if not isinstance(payload, dict):
             raise ValueError("memory payload must be a dictionary")
 
@@ -337,7 +342,8 @@ class MemoryCommitValidator:
         if missing:
             raise ValueError(f"memory node missing required fields: {', '.join(missing)}")
 
-        return MemoryNode(
+        relation_opt_in = relation_contract_version is not None
+        node = MemoryNode(
             id=payload["id"],
             type=payload["type"],
             title=payload["title"],
@@ -346,10 +352,22 @@ class MemoryCommitValidator:
             source=payload["source"],
             confidence=payload["confidence"],
             context=payload["context"],
-            relations=list(payload.get("relations") or []),
+            relations=[] if relation_opt_in else list(payload.get("relations") or []),
             created_at=str(payload.get("created_at") or utc_now()),
             updated_at=str(payload.get("updated_at") or utc_now()),
         )
+        if not relation_opt_in:
+            return node
+
+        from ai_os.semantic_relation_contract import validate_semantic_relation_list
+
+        raw_relations = payload["relations"] if "relations" in payload else []
+        node.relations = validate_semantic_relation_list(
+            raw_relations,
+            source_concept_id=payload["id"],
+            contract_version=relation_contract_version,
+        )
+        return node
 
 
 class DecisionEngine:
