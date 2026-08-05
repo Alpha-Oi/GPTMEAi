@@ -21,6 +21,8 @@ from ai_os.concept_core import (
     SafetyGuard,
 )
 from ai_os.memory_pipeline import corpus_status
+from ai_os.semantic_mesh import SemanticMeshIndex
+from ai_os.semantic_mesh_advisory import build_semantic_mesh_advisory
 from ai_os.stabilization_playbook import build_stabilization_playbooks
 from core.memory_engine import MemoryEngine
 from core.temporal_engine import TemporalMemory
@@ -199,6 +201,7 @@ class CognitiveLoop:
             return plan
         payload = dict(plan)
         payload.pop("concept_core_advisory", None)
+        payload.pop("semantic_mesh_advisory", None)
         return payload
 
     def _sanitize_cycle_for_serialization(self, cycle: dict | None) -> dict | None:
@@ -611,7 +614,13 @@ class CognitiveLoop:
             "stabilization_playbook_counts": perception.get("stabilization_playbooks", {}).get("playbook_counts", {}),
         }
 
-    def plan(self, perception: dict, reasoning: dict) -> dict:
+    def plan(
+        self,
+        perception: dict,
+        reasoning: dict,
+        *,
+        semantic_mesh_index: SemanticMeshIndex | None = None,
+    ) -> dict:
         existing_names = {agent["name"] for agent in self.runtime.list_agents()}
         active_titles = self._active_task_titles()
 
@@ -1171,6 +1180,11 @@ class CognitiveLoop:
             reasoning,
             plan_payload,
         )
+        if semantic_mesh_index is not None:
+            plan_payload["semantic_mesh_advisory"] = build_semantic_mesh_advisory(
+                semantic_mesh_index,
+                plan=plan_payload,
+            ).to_dict()
         return plan_payload
 
     def _build_concept_core_plan_advisory(self, perception: dict, reasoning: dict, plan: dict) -> dict:
