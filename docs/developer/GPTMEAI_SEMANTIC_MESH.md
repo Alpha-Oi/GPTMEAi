@@ -213,10 +213,18 @@ The adapter declares `runtime_enforcement=false`, `planner_input_applied=false`,
 not import storage, planner, execution, snapshot, or network dependencies. The
 focused smoke enforces an exact allowlist for the adapter imports.
 
-Stage E1 does not wire the advisory into `CognitiveLoop`, `PlannerRuntime`, API
-routes, task metadata, recovery requests, persistence, or status surfaces. Any
-top-level direct cognitive plan integration is a separate approval-gated Stage
-E2 slice and must preserve the existing Concept Core non-consumer pattern.
+Stage E2A adds exact opt-in direct-plan wiring in `CognitiveLoop.plan(...)`.
+Callers may pass an already-built `SemanticMeshIndex` through the keyword-only
+`semantic_mesh_index` parameter. Only then does the returned direct plan include
+top-level `semantic_mesh_advisory`. Default `plan(...)` calls and `run_cycle()` do
+not build or read a Semantic Mesh and do not include that field.
+
+The E2A advisory is filtered from persisted, status, and run-shaped plan
+serialization alongside `concept_core_advisory`. It is not copied into task
+metadata, planner context, recovery requests, or dispatch input. E2A does not
+change `PlannerRuntime`, API routes, storage/schema behavior, replay, or default
+runtime execution. Automatic mesh construction and any planner decision use
+remain separately approval-gated.
 
 ### Stage F - Strict relation writer
 
@@ -241,6 +249,8 @@ Future verification expectations:
 - use fixture-based smoke for any read-only index implementation;
 - keep the Stage E1 advisory payload aggregate-only and deterministic;
 - prove the advisory adapter has no runtime, planner, storage, or network imports;
+- prove Stage E2A changes only explicit direct-plan output and leaves default `run_cycle()` unchanged;
+- prove planner calls and serialization remain free of `semantic_mesh_advisory`;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -255,6 +265,6 @@ Rollback by stage:
 - Docs-only: remove or revert this contract and its change note.
 - Library-only: remove the new module and smoke, then rerun targeted verification.
 - API preview: remove the route and smoke, then verify legacy routes and status surfaces.
-- Planner/Cognitive adapter: remove the advisory adapter and verify continuity smokes.
+- Planner/Cognitive adapter: remove the advisory adapter and opt-in `CognitiveLoop.plan(...)` wiring, then verify continuity smokes.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
