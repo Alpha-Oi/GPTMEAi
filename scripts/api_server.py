@@ -17,6 +17,10 @@ from ai_os.memory_pipeline import (
     rebuild_vectors,
 )
 from ai_os.semantic_mesh import build_semantic_mesh
+from ai_os.semantic_relation_contract import (
+    RELATION_CONTRACT_VERSION,
+    SemanticRelationContractError,
+)
 from core.memory_engine import MemoryEngine
 from core.retrieval_engine import RetrievalEngine
 from core.temporal_engine import TemporalMemory
@@ -919,17 +923,46 @@ class GPTMemoryAPIHandler(BaseHTTPRequestHandler):
                 self._send_json({"error": "invalid json body"}, status=400)
                 return
 
+            relation_contract_requested = "relation_contract_version" in payload
+            if relation_contract_requested and payload.get("strict") is not True:
+                error = SemanticRelationContractError(
+                    "relation_contract_requires_strict_mode",
+                    field="relation_contract_version",
+                )
+                self._send_json({"error": str(error)}, status=400)
+                return
+
             if payload.get("strict") is True:
                 concept_payload = payload.get("concept_core")
                 if not isinstance(concept_payload, dict):
                     self._send_json({"error": "concept_core must be an object"}, status=400)
                     return
 
+                relation_contract_version = None
+                if relation_contract_requested:
+                    relation_contract_version = payload["relation_contract_version"]
+                    if (
+                        type(relation_contract_version) is not str
+                        or relation_contract_version != RELATION_CONTRACT_VERSION
+                    ):
+                        error = SemanticRelationContractError(
+                            "unsupported_contract_version",
+                            field="contract_version",
+                        )
+                        self._send_json({"error": str(error)}, status=400)
+                        return
+
+                add_concept_kwargs = {
+                    "tags": payload.get("tags") if "tags" in payload else None,
+                    "importance": payload.get("importance") if "importance" in payload else None,
+                }
+                if relation_contract_requested:
+                    add_concept_kwargs["relation_contract_version"] = relation_contract_version
+
                 try:
                     block = memory_engine.add_concept_node(
                         concept_payload,
-                        tags=payload.get("tags") if "tags" in payload else None,
-                        importance=payload.get("importance") if "importance" in payload else None,
+                        **add_concept_kwargs,
                     )
                 except ValueError as exc:
                     self._send_json({"error": str(exc)}, status=400)
