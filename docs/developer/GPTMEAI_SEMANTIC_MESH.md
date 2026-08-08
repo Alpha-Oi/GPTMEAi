@@ -282,16 +282,30 @@ explicit non-list value is rejected with a typed contract error before writing.
 The canonical relation copy is stored in the existing
 `metadata.concept_core.relations` field.
 
-F2A adds no API opt-in and does not change `/memory/add`, storage schemas,
-migrations, backfills, target lookup, reverse-edge creation, Semantic Mesh read
-semantics, planner, dispatch, replay, or default runtime behavior. A future API
-writer opt-in remains separately approval-gated.
+F2A itself adds no API opt-in. Stage F2B adds a deliberate top-level
+`relation_contract_version` transport control to `POST /memory/add`. It is active
+only when `strict` is exactly `True` and accepts only exact
+`semantic_relation.v1`. When the field is absent, the route preserves its
+existing permissive strict call and does not pass the new writer keyword. The
+transport field is not persisted and the success response shape is unchanged.
+
+An explicit unsupported, non-string, or `null` version returns
+`400 {"error": "unsupported_contract_version;field=contract_version"}` before
+the writer is called. Supplying the transport field outside strict mode returns
+`400 {"error": "relation_contract_requires_strict_mode;field=relation_contract_version"}`
+before the legacy text writer can run. Relation validation failures retain the
+typed F1 error strings through the existing API `ValueError` boundary.
+
+F2B does not change storage schemas, migrations, backfills, target lookup,
+reverse-edge creation, `/concept-core/status`, Semantic Mesh read semantics,
+planner, dispatch, replay, or default requests that omit the transport opt-in.
 
 ## 9. Safety invariants
 
 - Legacy `MemoryEngine.add` remains unchanged.
 - Legacy `POST /memory/add {"text": "..."}` remains unchanged.
 - No automatic backfill or migration of legacy memory is allowed.
+- Authored relation validation is never activated from relation content alone.
 - No planner, dispatch, or recovery decision is enforced from Semantic Mesh.
 - `/snapshots/replay` remains raw replay output.
 - Semantic Mesh is advisory-only until explicitly promoted by a later accepted contract.
@@ -314,6 +328,10 @@ Future verification expectations:
 - prove Stage F2A validates only explicit direct-library opt-in writes before storage mutation;
 - prove Stage F2A preserves the default permissive writer and unchanged `/memory/add` behavior;
 - prove invalid Stage F2A payloads preserve typed F1 errors and do not write blocks;
+- prove Stage F2B forwards only an explicit exact strict API opt-in;
+- prove Stage F2B leaves absent opt-in, legacy text writes, response shape, and status surfaces unchanged;
+- prove invalid Stage F2B transport controls and relation payloads do not write blocks;
+- prove Stage F2B performs no target lookup or reverse-edge creation;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -331,5 +349,6 @@ Rollback by stage:
 - Planner/Cognitive adapter: remove the advisory adapter and opt-in `CognitiveLoop.plan(...)` wiring, then verify continuity smokes.
 - Relation contract: remove the pure validator and focused smoke, then revert the Stage F1 documentation update.
 - Relation writer wiring: remove the keyword-only forwarding from `MemoryCommitValidator` and `MemoryEngine`, remove the writer smoke, then rerun Concept Core and memory route verification.
+- Relation API writer wiring: remove the `/memory/add` transport gate/forwarding and focused API smoke, revert the directly related docs, and retain F1/F2A plus existing stored data.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
