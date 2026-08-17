@@ -22,9 +22,10 @@ When instructions conflict or the project is ambiguous, use this order:
 
 ## Current Repository Status
 
-- No confirmed `.git` root.
-- Do not assume branch, commit, diff, or `git status` workflow.
-- Do not assume PR, branch naming, or commit-based recovery workflow exists in this workspace.
+- Confirmed Git repository root: `D:\Development GPTMEAi`.
+- Branch, commit, diff, pull request, and commit-based recovery workflows are active for this workspace.
+- Verify the current branch, working tree, and local/remote refs before Git actions; do not infer repository state from older reports or handoffs.
+- Treat push, pull request state changes, merge, remote branch deletion, and other external GitHub writes as separate approval-gated actions.
 
 ## Current Environment Warning
 
