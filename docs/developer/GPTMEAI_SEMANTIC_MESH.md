@@ -300,6 +300,28 @@ F2B does not change storage schemas, migrations, backfills, target lookup,
 reverse-edge creation, `/concept-core/status`, Semantic Mesh read semantics,
 planner, dispatch, replay, or default requests that omit the transport opt-in.
 
+Stage F3A adds the standalone pure classifier
+`ai_os.semantic_relation_compatibility.classify_semantic_relation_compatibility(...)`
+for already loaded stored relation lists. It reports one aggregate status:
+`empty`, `compatible_v1_shape`, `legacy_unversioned`, `mixed_versioning`,
+`unsupported_version`, `invalid_v1`, or `malformed_relations`. Exact fully
+versioned lists reuse the F1 validator so list limits, duplicate detection,
+self-reference rejection, and stable `code/index/field` diagnostics do not
+drift into a second validation implementation.
+
+`compatible_v1_shape` means only that the stored list has the exact
+`semantic_relation.v1` shape for the supplied source concept ID. It does not
+prove that the F2A/F2B writer validated the stored payload because the API
+transport opt-in is intentionally not persisted and the permissive path may
+store the same shape. Every report therefore returns
+`writer_validation_provenance=not_available` and
+`target_lookup_performed=false`.
+
+F3A is not integrated into `SemanticMeshIndex`, `build_semantic_mesh(...)`,
+`GET /semantic-mesh/preview`, Concept Core, memory writers, planner, runtime, or
+storage. It adds no target lookup, reverse edges, migration, backfill, schema
+change, API behavior change, or persistence metadata.
+
 ## 9. Safety invariants
 
 - Legacy `MemoryEngine.add` remains unchanged.
@@ -332,6 +354,10 @@ Future verification expectations:
 - prove Stage F2B leaves absent opt-in, legacy text writes, response shape, and status surfaces unchanged;
 - prove invalid Stage F2B transport controls and relation payloads do not write blocks;
 - prove Stage F2B performs no target lookup or reverse-edge creation;
+- prove Stage F3A classifies stored list compatibility without claiming writer provenance;
+- prove Stage F3A reuses F1 for exact-v1 list validation and returns only safe `code/index/field` diagnostics;
+- prove Stage F3A has no Semantic Mesh, API, writer, storage, planner, runtime, or network integration;
+- prove Stage F3A performs no target lookup, file I/O, runtime mutation, or input mutation;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -350,5 +376,6 @@ Rollback by stage:
 - Relation contract: remove the pure validator and focused smoke, then revert the Stage F1 documentation update.
 - Relation writer wiring: remove the keyword-only forwarding from `MemoryCommitValidator` and `MemoryEngine`, remove the writer smoke, then rerun Concept Core and memory route verification.
 - Relation API writer wiring: remove the `/memory/add` transport gate/forwarding and focused API smoke, revert the directly related docs, and retain F1/F2A plus existing stored data.
+- Relation compatibility classifier: remove the standalone classifier and focused smoke, then revert only the F3A documentation update.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
