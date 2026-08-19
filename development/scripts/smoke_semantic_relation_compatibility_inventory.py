@@ -41,7 +41,11 @@ EXPECTED_INVENTORY_FIELDS = {
     "writer_validation_provenance",
     "target_lookup_performed",
 }
-EXPECTED_IMPORT_ROOTS = {"__future__", "dataclasses", "ai_os"}
+EXPECTED_IMPORT_MODULES = {
+    "__future__",
+    "dataclasses",
+    "ai_os.semantic_relation_compatibility",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -69,9 +73,9 @@ def imported_modules(path: Path) -> set[str]:
     modules: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            modules.update(alias.name.split(".", 1)[0] for alias in node.names)
+            modules.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
-            modules.add((node.module or "").split(".", 1)[0])
+            modules.add(node.module or "")
     return modules
 
 
@@ -146,7 +150,7 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             ]
         ),
         "invalid_v1": classify([missing_evidence]),
-        "malformed_relations": classify(None),
+        "malformed_relations": classify([None]),
     }
     reports = [reports_by_status[status] for status in EXPECTED_STATUSES]
     reports_before = [report.to_dict() for report in reports]
@@ -187,6 +191,10 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
         and payload["unversioned_relation_count"] == expected_unversioned_count
         and payload["malformed_relation_count"] == expected_malformed_count
         and payload["issue_report_count"] == expected_issue_count
+    )
+    checks["positive_malformed_count_aggregated"] = (
+        expected_malformed_count > 0
+        and payload["malformed_relation_count"] == expected_malformed_count
     )
     checks["inventory_is_order_independent"] = payload == payload_again
     checks["inventory_does_not_mutate_reports"] = reports_before == [
@@ -373,7 +381,9 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             "memory:private-evidence",
         )
     )
-    checks["module_import_allowlist_exact"] = imported_modules(module_path) == EXPECTED_IMPORT_ROOTS
+    checks["module_import_allowlist_exact"] = (
+        imported_modules(module_path) == EXPECTED_IMPORT_MODULES
+    )
 
     project_runtime_after = file_metadata(project_runtime_file)
     temp_after = directory_snapshot(temp_root)
@@ -381,7 +391,7 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
     checks["project_runtime_file_unchanged"] = project_runtime_before == project_runtime_after
     details["project_runtime_before"] = project_runtime_before
     details["project_runtime_after"] = project_runtime_after
-    details["module_import_roots"] = sorted(imported_modules(module_path))
+    details["module_imports"] = sorted(imported_modules(module_path))
 
     return {
         "status": "ok" if all(checks.values()) else "failed",
