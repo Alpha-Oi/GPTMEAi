@@ -366,6 +366,28 @@ Semantic Mesh, API, writers, planner, runtime, or network surfaces and adds no
 target lookup, reverse edges, migration, backfill, schema change, persistence
 metadata, input mutation, or API behavior.
 
+Stage F3D adds the standalone pure direct-batch comparison function
+`ai_os.semantic_relation_compatibility_comparison.compare_direct_semantic_relation_compatibility_batches(...)`.
+It accepts exact caller-supplied `baseline_inputs` and `candidate_inputs`, calls
+the existing F3C builder exactly once for each batch, retains the exact returned
+inventories, and computes signed `candidate_minus_baseline` deltas for every
+fixed-taxonomy status and aggregate count. F3D does not duplicate F3A
+classification, F3B aggregation, or F3C batch-validation rules.
+
+The F3D output contains only the baseline aggregate, candidate aggregate, and
+descriptive signed deltas. `inventory_generation_provenance` describes only the
+direct in-process F3D-to-F3C call path; `writer_validation_provenance` remains
+`not_available`. The comparison performs no source-identity matching,
+deduplication, pairing, relation alignment, trend interpretation, readiness,
+migration, enforcement, or policy decision. Duplicate inputs remain independent
+F3C count entries.
+
+F3D does not expose or retain source IDs, relation payloads, individual reports,
+targets, or evidence refs. It does not import or call `MemoryEngine`, storage,
+Semantic Mesh, API, writers, planner, runtime, or network surfaces and adds no
+storage read, target lookup, reverse edges, migration, backfill, schema change,
+persistence metadata, file I/O, input mutation, or API behavior.
+
 ## 9. Safety invariants
 
 - Legacy `MemoryEngine.add` remains unchanged.
@@ -411,6 +433,11 @@ Future verification expectations:
 - prove Stage F3C covers the complete F3A taxonomy, positive malformed-only input, deterministic empty and order-independent output, and explicit count-each duplicate semantics;
 - prove Stage F3C exposes only aggregate counts plus bounded call-path provenance and does not retain or mutate source IDs or relation payloads;
 - prove Stage F3C has an exact F3A/F3B-only project import allowlist and no storage read, Semantic Mesh/API integration, target lookup, reverse edges, migration, file I/O, or mutation;
+- prove Stage F3D calls F3C exactly once for each direct batch with exact batch/list/item identity and retains the exact returned inventories;
+- prove Stage F3D computes signed `candidate_minus_baseline` deltas for the complete fixed taxonomy and every aggregate through mixed, swapped, same, empty, malformed-only, and duplicate fixtures;
+- prove Stage F3D wraps F3C envelope failures with safe baseline/candidate context and never exposes rejected values;
+- prove Stage F3D output is aggregate-only and policy-free, with no source matching, pairing, alignment, readiness, migration, or enforcement interpretation;
+- prove Stage F3D has an exact F3C-only project import allowlist and no storage read, Semantic Mesh/API integration, target lookup, reverse edges, migration, file I/O, or mutation;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -432,5 +459,6 @@ Rollback by stage:
 - Relation compatibility classifier: remove the standalone classifier and focused smoke, then revert only the F3A documentation update.
 - Relation compatibility inventory: remove the standalone inventory builder and focused smoke, then revert only the F3B documentation update.
 - Direct relation compatibility batch inventory: remove the standalone batch builder and focused smoke, then revert only the F3C documentation update.
+- Direct-batch aggregate compatibility comparison: remove the standalone comparison module and focused smoke, then revert only the F3D documentation update.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
