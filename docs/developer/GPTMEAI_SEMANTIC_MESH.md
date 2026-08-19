@@ -322,6 +322,25 @@ F3A is not integrated into `SemanticMeshIndex`, `build_semantic_mesh(...)`,
 storage. It adds no target lookup, reverse edges, migration, backfill, schema
 change, API behavior change, or persistence metadata.
 
+Stage F3B adds the standalone pure aggregate builder
+`ai_os.semantic_relation_compatibility_inventory.build_semantic_relation_compatibility_inventory(...)`
+over caller-supplied `SemanticRelationCompatibilityReport` objects. It accepts
+an exact list, validates report type, status, non-negative counts, aggregate and
+status-specific count consistency, and issue invariants, then returns deterministic fixed-taxonomy
+status counts plus aggregate relation and issue-report counts. Exact report
+generation provenance cannot be established from these public value objects.
+
+The F3B inventory is aggregate-only. It does not accept or expose memory blocks,
+Concept Core metadata, source concept IDs, relation payloads, targets, or
+evidence refs. It reports `report_generation_provenance=not_available`,
+`writer_validation_provenance=not_available`, and
+`target_lookup_performed=false`; it does not derive an overall readiness,
+migration, planner, or enforcement decision from the counts.
+
+F3B does not import or call `MemoryEngine`, storage, Semantic Mesh, API, planner,
+runtime, or network surfaces. It adds no target lookup, reverse edges,
+migration, backfill, schema change, persistence metadata, or API behavior.
+
 ## 9. Safety invariants
 
 - Legacy `MemoryEngine.add` remains unchanged.
@@ -358,6 +377,10 @@ Future verification expectations:
 - prove Stage F3A reuses F1 for exact-v1 list validation and returns only safe `code/index/field` diagnostics;
 - prove Stage F3A has no Semantic Mesh, API, writer, storage, planner, runtime, or network integration;
 - prove Stage F3A performs no target lookup, file I/O, runtime mutation, or input mutation;
+- prove Stage F3B aggregates well-formed caller-supplied compatibility reports with exact fixed-taxonomy counts without claiming report-generation provenance;
+- prove Stage F3B rejects malformed reports with safe `code/index/field` errors and no rejected values;
+- prove Stage F3B is order-independent and exposes no report, source-ID, or relation payloads;
+- prove Stage F3B has no storage read, Semantic Mesh/API integration, target lookup, reverse edges, migration, or mutation;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -377,5 +400,6 @@ Rollback by stage:
 - Relation writer wiring: remove the keyword-only forwarding from `MemoryCommitValidator` and `MemoryEngine`, remove the writer smoke, then rerun Concept Core and memory route verification.
 - Relation API writer wiring: remove the `/memory/add` transport gate/forwarding and focused API smoke, revert the directly related docs, and retain F1/F2A plus existing stored data.
 - Relation compatibility classifier: remove the standalone classifier and focused smoke, then revert only the F3A documentation update.
+- Relation compatibility inventory: remove the standalone inventory builder and focused smoke, then revert only the F3B documentation update.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
