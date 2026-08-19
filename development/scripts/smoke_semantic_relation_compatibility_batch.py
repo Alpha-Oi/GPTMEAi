@@ -168,11 +168,25 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
         for item in inputs
     ]
 
+    classified_reports: list[SemanticRelationCompatibilityReport] = []
+
+    def record_classification(
+        relations: object,
+        *,
+        source_concept_id: object,
+    ) -> SemanticRelationCompatibilityReport:
+        report = classify_semantic_relation_compatibility(
+            relations,
+            source_concept_id=source_concept_id,
+        )
+        classified_reports.append(report)
+        return report
+
     with (
         patch.object(
             batch_module,
             "classify_semantic_relation_compatibility",
-            wraps=classify_semantic_relation_compatibility,
+            side_effect=record_classification,
         ) as classify_spy,
         patch.object(
             batch_module,
@@ -229,6 +243,13 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
         and type(generated_reports) is list
         and len(generated_reports) == len(inputs)
         and all(type(report) is SemanticRelationCompatibilityReport for report in generated_reports)
+    )
+    checks["per_report_f3a_to_f3b_identity_exact"] = (
+        len(classified_reports) == len(generated_reports)
+        and all(
+            generated_reports[index] is classified_reports[index]
+            for index in range(len(generated_reports))
+        )
     )
     checks["all_statuses_aggregated_once"] = (
         payload["report_count"] == len(EXPECTED_STATUSES)
