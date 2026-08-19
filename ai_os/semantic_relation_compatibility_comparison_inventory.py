@@ -268,6 +268,41 @@ def _validate_inventory(
             field=f"{field_prefix}_unversioned_relation_count",
         )
 
+    if (
+        inventory.malformed_relation_count > 0
+        and status_values["malformed_relations"] == 0
+    ):
+        raise SemanticRelationCompatibilityComparisonInventoryError(
+            "compatibility_comparison_count_mismatch",
+            index=index,
+            field=f"{field_prefix}_malformed_relation_count",
+        )
+
+    malformed_status_can_hold_relations = (
+        status_values["malformed_relations"] > 0
+        and inventory.malformed_relation_count > 0
+    )
+    if (
+        inventory.versioned_relation_count > 0
+        and minimum_versioned_count == 0
+        and not malformed_status_can_hold_relations
+    ):
+        raise SemanticRelationCompatibilityComparisonInventoryError(
+            "compatibility_comparison_count_mismatch",
+            index=index,
+            field=f"{field_prefix}_versioned_relation_count",
+        )
+    if (
+        inventory.unversioned_relation_count > 0
+        and minimum_unversioned_count == 0
+        and not malformed_status_can_hold_relations
+    ):
+        raise SemanticRelationCompatibilityComparisonInventoryError(
+            "compatibility_comparison_count_mismatch",
+            index=index,
+            field=f"{field_prefix}_unversioned_relation_count",
+        )
+
 
 def _validate_deltas(
     comparison: SemanticRelationCompatibilityComparison,

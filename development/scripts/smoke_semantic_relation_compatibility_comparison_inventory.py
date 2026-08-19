@@ -149,6 +149,7 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
     import ai_os.semantic_relation_compatibility_comparison_inventory as inventory_module
     from ai_os.semantic_relation_compatibility import COMPATIBILITY_STATUSES
     from ai_os.semantic_relation_compatibility_batch import (
+        SemanticRelationCompatibilityBatchInventory,
         SemanticRelationCompatibilityInput,
     )
     from ai_os.semantic_relation_compatibility_comparison import (
@@ -218,6 +219,42 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             return exc.to_dict(), str(exc)
         raise AssertionError(
             "expected SemanticRelationCompatibilityComparisonInventoryError"
+        )
+
+    def forged_zero_delta_comparison(
+        *,
+        status: str,
+        relation_count: int,
+        versioned_relation_count: int,
+        unversioned_relation_count: int,
+        malformed_relation_count: int,
+    ) -> SemanticRelationCompatibilityComparison:
+        inventory = SemanticRelationCompatibilityBatchInventory(
+            report_count=1,
+            status_counts=tuple(
+                (expected_status, int(expected_status == status))
+                for expected_status in EXPECTED_STATUSES
+            ),
+            relation_count=relation_count,
+            versioned_relation_count=versioned_relation_count,
+            unversioned_relation_count=unversioned_relation_count,
+            malformed_relation_count=malformed_relation_count,
+            issue_report_count=int(
+                status not in {"empty", "compatible_v1_shape", "legacy_unversioned"}
+            ),
+        )
+        return SemanticRelationCompatibilityComparison(
+            baseline_inventory=inventory,
+            candidate_inventory=inventory,
+            report_count_delta=0,
+            status_count_deltas=tuple(
+                (expected_status, 0) for expected_status in EXPECTED_STATUSES
+            ),
+            relation_count_delta=0,
+            versioned_relation_count_delta=0,
+            unversioned_relation_count_delta=0,
+            malformed_relation_count_delta=0,
+            issue_report_count_delta=0,
         )
 
     baseline_statuses = (
@@ -365,6 +402,95 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
         and malformed_only_payload["delta"]["malformed_relation_count"] == 1
         and malformed_only_payload["delta"]["issue_report_count"] == 1
     )
+
+    zero_relation_malformed = compare_direct_semantic_relation_compatibility_batches(
+        baseline_inputs=[],
+        candidate_inputs=[
+            SemanticRelationCompatibilityInput(
+                source_concept_id="concept:zero-relation-malformed-source",
+                relations=("not", "a", "list"),
+            )
+        ],
+    )
+    zero_relation_malformed_payload = build([zero_relation_malformed]).to_dict()
+    checks["positive_zero_relation_malformed_fixture"] = (
+        zero_relation_malformed_payload["delta"]["status_counts"][
+            "malformed_relations"
+        ]
+        == 1
+        and zero_relation_malformed_payload["delta"]["relation_count"] == 0
+        and zero_relation_malformed_payload["delta"]["versioned_relation_count"] == 0
+        and zero_relation_malformed_payload["delta"]["unversioned_relation_count"] == 0
+        and zero_relation_malformed_payload["delta"]["malformed_relation_count"] == 0
+        and zero_relation_malformed_payload["delta"]["issue_report_count"] == 1
+    )
+
+    feasibility_cases = [
+        (
+            [
+                forged_zero_delta_comparison(
+                    status="empty",
+                    relation_count=1,
+                    versioned_relation_count=1,
+                    unversioned_relation_count=0,
+                    malformed_relation_count=0,
+                )
+            ],
+            {
+                "code": "compatibility_comparison_count_mismatch",
+                "index": 0,
+                "field": "baseline_versioned_relation_count",
+            },
+        ),
+        (
+            [
+                forged_zero_delta_comparison(
+                    status="empty",
+                    relation_count=1,
+                    versioned_relation_count=0,
+                    unversioned_relation_count=1,
+                    malformed_relation_count=0,
+                )
+            ],
+            {
+                "code": "compatibility_comparison_count_mismatch",
+                "index": 0,
+                "field": "baseline_unversioned_relation_count",
+            },
+        ),
+        (
+            [
+                forged_zero_delta_comparison(
+                    status="compatible_v1_shape",
+                    relation_count=2,
+                    versioned_relation_count=1,
+                    unversioned_relation_count=0,
+                    malformed_relation_count=1,
+                )
+            ],
+            {
+                "code": "compatibility_comparison_count_mismatch",
+                "index": 0,
+                "field": "baseline_malformed_relation_count",
+            },
+        ),
+        (
+            [
+                forged_zero_delta_comparison(
+                    status="malformed_relations",
+                    relation_count=1,
+                    versioned_relation_count=1,
+                    unversioned_relation_count=0,
+                    malformed_relation_count=0,
+                )
+            ],
+            {
+                "code": "compatibility_comparison_count_mismatch",
+                "index": 0,
+                "field": "baseline_versioned_relation_count",
+            },
+        ),
+    ]
 
     private_value = "private-comparison-inventory-value"
     malformed_cases = [
@@ -601,8 +727,18 @@ def run_smoke(temp_root: Path) -> dict[str, Any]:
             },
         ),
     ]
+    captured_feasibility_errors = [
+        capture_error(case) for case, _ in feasibility_cases
+    ]
     captured_errors = [capture_error(case) for case, _ in malformed_cases]
-    details["errors"] = [error[0] for error in captured_errors]
+    details["errors"] = [
+        error[0]
+        for error in (*captured_feasibility_errors, *captured_errors)
+    ]
+    checks["status_to_count_feasibility_rejected_exactly"] = all(
+        captured_feasibility_errors[index][0] == expected
+        for index, (_, expected) in enumerate(feasibility_cases)
+    )
     checks["malformed_public_objects_rejected_exactly"] = all(
         captured_errors[index][0] == expected
         for index, (_, expected) in enumerate(malformed_cases)
