@@ -412,6 +412,33 @@ deduplication, pairing, relation alignment, target lookup, reverse edges,
 migration, backfill, schema change, persistence metadata, file I/O, input
 mutation, or API behavior.
 
+Stage F3F adds the standalone pure direct comparison-batch composer
+`ai_os.semantic_relation_compatibility_comparison_batch.build_direct_semantic_relation_compatibility_comparison_inventory(...)`.
+It accepts an exact list of exact frozen
+`SemanticRelationCompatibilityComparisonBatchInput` value objects. Each object
+is one explicit caller-supplied `baseline_inputs` / `candidate_inputs` pair;
+F3F does not infer, discover, match, deduplicate, or align comparison units.
+
+For each explicit pair, F3F calls the existing F3D comparison exactly once with
+the exact supplied batch objects. It passes only the exact generated comparison
+objects, in a new list, to the existing F3E builder exactly once. The returned
+aggregate-only inventory preserves the exact F3E baseline, candidate, and delta
+objects and marks the bounded in-process call path with
+`comparison_generation_provenance=direct_f3d_comparison_for_each_input` and
+`comparison_inventory_generation_provenance=direct_f3e_comparison_inventory_builder`.
+These markers do not prove input origin, authenticity, freshness, completeness,
+uniqueness, storage ownership, source identity, or writer validation.
+
+Duplicate explicit pairs are counted independently and aggregate order is
+irrelevant, while input order remains relevant only for safe
+`comparison_index/batch/index/field` error context. F3F does not retain or expose
+input pairs, individual comparisons, nested inventories, source IDs, relation
+payloads, reports, targets, or evidence refs. It does not import or call
+`MemoryEngine`, storage, Semantic Mesh, API, writers, planner, runtime, or
+network surfaces and adds no storage read, source matching, target lookup,
+reverse edges, migration, backfill, schema change, persistence metadata, file
+I/O, input mutation, policy interpretation, or API behavior.
+
 ## 9. Safety invariants
 
 - Legacy `MemoryEngine.add` remains unchanged.
@@ -467,6 +494,10 @@ Future verification expectations:
 - prove Stage F3E accepts positive, negative, zero, cancelling, empty, and malformed-only fixtures without deriving trend, readiness, migration, enforcement, or policy meaning;
 - prove Stage F3E exposes only aggregate counts, does not retain input references, and marks caller-supplied comparison provenance as unavailable;
 - prove Stage F3E has an exact F3A/F3C/F3D project import allowlist, does not regenerate comparisons, and performs no storage read, Semantic Mesh/API integration, matching, lookup, migration, file I/O, or mutation;
+- prove Stage F3F accepts only an exact list of exact direct comparison-batch input objects and preserves safe `comparison_index/batch/index/field` context without rejected values;
+- prove Stage F3F calls F3D exactly once per explicit input pair with exact baseline/candidate identities, then calls F3E exactly once with the exact generated comparison identities;
+- prove Stage F3F preserves exact F3E aggregate object identities and covers complete taxonomy, positive/negative/zero/cancelling, empty, malformed-only, order-independent, and count-each duplicate behavior;
+- prove Stage F3F output is aggregate-only and policy-free, has an exact F3D/F3E project import allowlist, and performs no storage read, Semantic Mesh/API integration, source matching, target lookup, migration, file I/O, or mutation;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -490,5 +521,6 @@ Rollback by stage:
 - Direct relation compatibility batch inventory: remove the standalone batch builder and focused smoke, then revert only the F3C documentation update.
 - Direct-batch aggregate compatibility comparison: remove the standalone comparison module and focused smoke, then revert only the F3D documentation update.
 - Aggregate compatibility-comparison inventory: remove the standalone comparison-inventory module and focused smoke, then revert only the F3E documentation update.
+- Direct comparison-batch inventory composer: remove the standalone comparison-batch module and focused smoke, then revert only the F3F documentation update.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
