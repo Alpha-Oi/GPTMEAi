@@ -341,6 +341,31 @@ F3B does not import or call `MemoryEngine`, storage, Semantic Mesh, API, planner
 runtime, or network surfaces. It adds no target lookup, reverse edges,
 migration, backfill, schema change, persistence metadata, or API behavior.
 
+Stage F3C adds the standalone pure direct-input batch builder
+`ai_os.semantic_relation_compatibility_batch.build_direct_semantic_relation_compatibility_inventory(...)`.
+It accepts an exact list of exact frozen `SemanticRelationCompatibilityInput`
+objects containing only a caller-supplied `source_concept_id` and already loaded
+`relations`. Each input is classified directly through F3A, and the resulting
+reports are aggregated through the existing F3B builder. F3C does not duplicate
+classification or aggregation rules.
+
+The F3C output remains aggregate-only and deterministic. It reports
+`report_generation_provenance=direct_f3a_classifier` only to describe the
+in-process F3C-to-F3A call path. This marker does not establish the origin,
+authenticity, freshness, completeness, uniqueness, storage ownership, or writer
+validation of caller-supplied relation inputs. F3C therefore retains
+`writer_validation_provenance=not_available` and
+`target_lookup_performed=false`, derives no readiness or migration decision,
+and counts repeated input items independently without source-ID deduplication.
+
+F3C does not accept storage handles, paths, memory blocks, Concept Core
+metadata, iterators, generators, or caller-supplied compatibility reports. It
+does not expose source concept IDs, relation payloads, individual reports,
+targets, or evidence refs. It does not import or call `MemoryEngine`, storage,
+Semantic Mesh, API, writers, planner, runtime, or network surfaces and adds no
+target lookup, reverse edges, migration, backfill, schema change, persistence
+metadata, input mutation, or API behavior.
+
 ## 9. Safety invariants
 
 - Legacy `MemoryEngine.add` remains unchanged.
@@ -381,6 +406,11 @@ Future verification expectations:
 - prove Stage F3B rejects malformed reports with safe `code/index/field` errors and no rejected values;
 - prove Stage F3B is order-independent and exposes no report, source-ID, or relation payloads;
 - prove Stage F3B has no storage read, Semantic Mesh/API integration, target lookup, reverse edges, migration, or mutation;
+- prove Stage F3C accepts only an exact list of exact direct-input value objects and returns safe `code/index/field` envelope errors without rejected values;
+- prove Stage F3C calls F3A once per input with direct object identity, passes only generated reports to F3B, and does not duplicate either contract;
+- prove Stage F3C covers the complete F3A taxonomy, positive malformed-only input, deterministic empty and order-independent output, and explicit count-each duplicate semantics;
+- prove Stage F3C exposes only aggregate counts plus bounded call-path provenance and does not retain or mutate source IDs or relation payloads;
+- prove Stage F3C has an exact F3A/F3B-only project import allowlist and no storage read, Semantic Mesh/API integration, target lookup, reverse edges, migration, file I/O, or mutation;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -401,5 +431,6 @@ Rollback by stage:
 - Relation API writer wiring: remove the `/memory/add` transport gate/forwarding and focused API smoke, revert the directly related docs, and retain F1/F2A plus existing stored data.
 - Relation compatibility classifier: remove the standalone classifier and focused smoke, then revert only the F3A documentation update.
 - Relation compatibility inventory: remove the standalone inventory builder and focused smoke, then revert only the F3B documentation update.
+- Direct relation compatibility batch inventory: remove the standalone batch builder and focused smoke, then revert only the F3C documentation update.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
