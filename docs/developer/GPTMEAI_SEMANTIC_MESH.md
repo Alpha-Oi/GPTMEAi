@@ -388,6 +388,30 @@ Semantic Mesh, API, writers, planner, runtime, or network surfaces and adds no
 storage read, target lookup, reverse edges, migration, backfill, schema change,
 persistence metadata, file I/O, input mutation, or API behavior.
 
+Stage F3E adds the standalone pure aggregate comparison-inventory builder
+`ai_os.semantic_relation_compatibility_comparison_inventory.build_semantic_relation_compatibility_comparison_inventory(...)`.
+It accepts an exact list of exact caller-supplied F3D
+`SemanticRelationCompatibilityComparison` objects, validates their nested F3C
+inventory types, fixed taxonomy, aggregate count consistency, status-derived
+issue/minimum relation counts, and every signed `candidate_minus_baseline`
+delta, then returns deterministic summed baseline, candidate, and delta counts.
+F3E does not call F3D or regenerate comparisons.
+
+Public F3D value objects can be constructed without the F3D builder, so F3E
+reports `comparison_generation_provenance=not_available` and does not propagate
+F3D direct-call provenance as evidence. Repeated comparison objects are counted
+independently, input order is irrelevant, and positive and negative deltas may
+cancel arithmetically without implying improvement, regression, trend,
+readiness, migration, enforcement, or policy meaning.
+
+F3E does not retain or expose individual comparisons, nested inventories,
+source IDs, relation payloads, reports, targets, or evidence refs. It does not
+import or call `MemoryEngine`, storage, Semantic Mesh, API, writers, planner,
+runtime, or network surfaces and adds no storage read, source matching,
+deduplication, pairing, relation alignment, target lookup, reverse edges,
+migration, backfill, schema change, persistence metadata, file I/O, input
+mutation, or API behavior.
+
 ## 9. Safety invariants
 
 - Legacy `MemoryEngine.add` remains unchanged.
@@ -438,6 +462,11 @@ Future verification expectations:
 - prove Stage F3D wraps F3C envelope failures with safe baseline/candidate context and never exposes rejected values;
 - prove Stage F3D output is aggregate-only and policy-free, with no source matching, pairing, alignment, readiness, migration, or enforcement interpretation;
 - prove Stage F3D has an exact F3C-only project import allowlist and no storage read, Semantic Mesh/API integration, target lookup, reverse edges, migration, file I/O, or mutation;
+- prove Stage F3E accepts only an exact list of exact F3D comparison objects and rejects forged nested types, taxonomies, counts, issue/minimum relation invariants, and deltas with safe `code/index/field` errors;
+- prove Stage F3E aggregates complete fixed-taxonomy baseline/candidate/delta counts exactly, remains order-independent, and applies explicit count-each duplicate semantics;
+- prove Stage F3E accepts positive, negative, zero, cancelling, empty, and malformed-only fixtures without deriving trend, readiness, migration, enforcement, or policy meaning;
+- prove Stage F3E exposes only aggregate counts, does not retain input references, and marks caller-supplied comparison provenance as unavailable;
+- prove Stage F3E has an exact F3A/F3C/F3D project import allowlist, does not regenerate comparisons, and performs no storage read, Semantic Mesh/API integration, matching, lookup, migration, file I/O, or mutation;
 - keep existing Concept Core smokes green;
 - keep existing memory route/read visibility smokes green if routes are touched;
 - keep replay/stabilization continuity smokes green if planner or replay boundaries are touched;
@@ -460,5 +489,6 @@ Rollback by stage:
 - Relation compatibility inventory: remove the standalone inventory builder and focused smoke, then revert only the F3B documentation update.
 - Direct relation compatibility batch inventory: remove the standalone batch builder and focused smoke, then revert only the F3C documentation update.
 - Direct-batch aggregate compatibility comparison: remove the standalone comparison module and focused smoke, then revert only the F3D documentation update.
+- Aggregate compatibility-comparison inventory: remove the standalone comparison-inventory module and focused smoke, then revert only the F3E documentation update.
 
 No stage may require data rollback unless a later approved task explicitly introduces storage mutation.
