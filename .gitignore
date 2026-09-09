@@ -3,6 +3,7 @@
 
 # Repository metadata and canonical root files.
 !/.gitignore
+!/.gitattributes
 !/.env.example
 !/AGENTS.md
 !/README.md
@@ -11,6 +12,13 @@
 !/AI_OS_PROJECT_AUDIT.md
 !/run_ai_os.py
 !/run_ai_os.ps1
+
+# Community health files and GitHub configuration.
+!/CODE_OF_CONDUCT.md
+!/CONTRIBUTING.md
+!/SECURITY.md
+!/NOTICE
+!/.github/
 
 # Canonical runtime, packages, interface, docs, and development evidence.
 !/ai_os/

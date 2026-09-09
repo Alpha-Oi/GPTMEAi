@@ -1,0 +1,34 @@
+name: Change proposal
+description: Propose a new capability or a substantial change
+title: "[Proposal]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Scenario
+      description: Who needs this, and what observable result should they get?
+    validations:
+      required: true
+  - type: textarea
+    id: gap
+    attributes:
+      label: Current gap
+      description: What is not handled adequately today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would change, and how would you know it works?
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This does not require secrets or private data in the repository.
+          required: true

@@ -1,4 +1,20 @@
-# GPTMEAi
+<div align="center">
+
+# ◈ GPTMEAi
+
+### Локальный прототип AI OS: память, граф связей, планирование и исполнение
+
+**Control plane · Планировщик / исполнитель · Аудируемый operation ledger**
+
+[![Compile](https://github.com/Alpha-Oi/GPTMEAi/actions/workflows/compile.yml/badge.svg)](https://github.com/Alpha-Oi/GPTMEAi/actions/workflows/compile.yml)
+![Status](https://img.shields.io/badge/status-active-22a06b)
+![License](https://img.shields.io/badge/license-proprietary-lightgrey)
+
+[Как внести вклад](CONTRIBUTING.md) · [Правила сообщества](CODE_OF_CONDUCT.md) · [Безопасность](SECURITY.md) · [Notice](NOTICE)
+
+</div>
+
+---
 
 Локальный прототип AI OS: память, граф связей, поиск, snapshot-экспорт и операторская панель.
 
