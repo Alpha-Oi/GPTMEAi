@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from ai_os.atomic_store import atomic_write_text, ensure_free_space
 from ai_os.config import get_project_paths
 
 MEMORY_DIR = get_project_paths().memory_dir
@@ -45,10 +46,12 @@ def build_vector_memory():
             })
 
     VECTOR_FILE.parent.mkdir(parents=True, exist_ok=True)
-    VECTOR_FILE.write_text(
-        json.dumps(vectors, ensure_ascii=False),
-        encoding="utf-8"
-    )
+    payload = json.dumps(vectors, ensure_ascii=False)
+    # This file is large (hundreds of MB). Fail loudly *before* touching the
+    # existing copy if the volume cannot hold the new file plus its .bak.
+    needed = len(payload.encode("utf-8")) * 3
+    ensure_free_space(VECTOR_FILE.parent, needed)
+    atomic_write_text(VECTOR_FILE, payload, min_free_bytes=needed)
 
     print("Vector memory created")
 

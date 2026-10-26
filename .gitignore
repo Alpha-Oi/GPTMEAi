@@ -53,6 +53,8 @@
 *.py[cod]
 *.pyc.*
 *.bak
+*.bak[0-9]
+*.corrupt-*
 *.log
 *.tmp
 .pytest_cache/

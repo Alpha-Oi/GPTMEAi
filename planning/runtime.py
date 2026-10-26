@@ -11,6 +11,7 @@ from pathlib import Path
 from threading import RLock
 
 from ai_os.agent_runtime import AGENT_RUNTIME, AgentRuntime
+from ai_os.atomic_store import atomic_write_json, read_json_resilient
 from ai_os.config import get_project_paths
 from ai_os.stabilization_playbook import build_stabilization_playbooks
 from core.memory_engine import MemoryEngine
@@ -234,16 +235,13 @@ class PlannerRuntime:
         return PlanRecord(**data)
 
     def _load_state(self) -> None:
-        if not self.state_path.exists():
-            state = self._default_state()
-        else:
-            try:
-                state = json.loads(self.state_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                state = self._default_state()
-
-        if not isinstance(state, dict):
-            state = self._default_state()
+        state = read_json_resilient(
+            self.state_path,
+            default_factory=self._default_state,
+            expect=dict,
+            on_unrecoverable="default",
+            preserve_corrupt=True,
+        )
 
         plans: list[PlanRecord] = []
         for payload in state.get("plans", []):
@@ -270,14 +268,13 @@ class PlannerRuntime:
         self._branch_health_history = branch_health_history
 
     def _save_state(self) -> None:
-        self.state_path.parent.mkdir(parents=True, exist_ok=True)
         body = {
             "plans": [asdict(plan) for plan in self._plans],
             "events": list(self._events),
             "branch_health_history": self._branch_health_history,
             "last_updated": utc_now(),
         }
-        self.state_path.write_text(json.dumps(body, ensure_ascii=False, indent=2), encoding="utf-8")
+        atomic_write_json(self.state_path, body)
 
     def _log_event(self, event_type: str, summary: str, **data) -> None:
         self._events.appendleft(

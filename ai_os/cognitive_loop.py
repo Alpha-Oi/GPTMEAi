@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Lock, Thread
 
 from ai_os.agent_runtime import AGENT_RUNTIME, AgentRuntime
+from ai_os.atomic_store import atomic_write_json, read_json_resilient
 from ai_os.config import get_project_paths
 from ai_os.concept_core import (
     DecisionEngine,
@@ -174,27 +174,19 @@ class CognitiveLoop:
         }
 
     def _load_state(self) -> dict:
-        if not self.state_path.exists():
-            return self._default_state()
-
-        try:
-            data = json.loads(self.state_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            return self._default_state()
-
-        if not isinstance(data, dict):
-            return self._default_state()
-
+        data = read_json_resilient(
+            self.state_path,
+            default_factory=self._default_state,
+            expect=dict,
+            on_unrecoverable="default",
+            preserve_corrupt=True,
+        )
         state = self._default_state()
         state.update(data)
         return state
 
     def _save_state(self) -> None:
-        self.state_path.parent.mkdir(parents=True, exist_ok=True)
-        self.state_path.write_text(
-            json.dumps(self._state_for_serialization(), ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        atomic_write_json(self.state_path, self._state_for_serialization())
 
     def _sanitize_plan_for_serialization(self, plan: dict | None) -> dict | None:
         if not isinstance(plan, dict):

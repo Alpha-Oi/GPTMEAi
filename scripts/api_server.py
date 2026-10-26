@@ -29,7 +29,10 @@ from execution.ledger import OPERATION_LEDGER
 from execution.snapshots import SNAPSHOT_LINEAGE
 from execution.runtime import EXECUTION_RUNTIME
 from planning.runtime import PLANNER_RUNTIME
+from ai_os.atomic_store import atomic_write_json, rotate_dir
 from scripts.runtime_store import load_runtime
+
+SNAPSHOT_RETENTION = 50
 
 PATHS = get_project_paths()
 RUNTIME = get_runtime_config()
@@ -1071,10 +1074,8 @@ class GPTMemoryAPIHandler(BaseHTTPRequestHandler):
             )
             snapshot["snapshot_lineage"] = snapshot_record
 
-            snapshot_path.write_text(
-                json.dumps(snapshot, ensure_ascii=False, indent=2),
-                encoding="utf-8"
-            )
+            atomic_write_json(snapshot_path, snapshot)
+            rotate_dir(snapshot_dir, "project_snapshot_*.json", SNAPSHOT_RETENTION)
 
             self._send_json({
                 "status": "ok",

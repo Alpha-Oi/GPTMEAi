@@ -136,7 +136,7 @@ Live runtime/API smoke: after approval, `run_ai_os.ps1` launched `D:\GPTMEAi_ven
 - [`api_server.py`](/D:/Development%20GPTMEAi/scripts/api_server.py)
   основной локальный API
 - [`runtime_store.py`](/D:/Development%20GPTMEAi/scripts/runtime_store.py)
-  чтение/запись runtime store
+  чтение/запись runtime store; запись атомарная через [`ai_os/atomic_store.py`](/D:/Development%20GPTMEAi/ai_os/atomic_store.py), чтение восстанавливается из `.bak` и не отдаёт пустой документ при повреждении
 
 ## Какая файловая система считается нормальной
 
@@ -261,6 +261,7 @@ Active current-state overlay for the historical canonical 100-step plan:
 - project-local smoke helper для remediation-aware recovery workflow
 - архитектурные инварианты
 - техническая спецификация слоёв
+- crash-safe storage layer (Storage P0): новый standalone модуль `ai_os/atomic_store.py` (только stdlib) даёт `atomic_write_text` / `atomic_write_json` (запись в sibling `*.tmp` -> `flush()` + `os.fsync()` -> ротация текущего файла в `<name>.bak` / `.bak2` / `.bak3` -> `os.replace()`), `read_json_resilient` (при missing/empty/corrupt/wrong-type идёт по цепочке `.bak`, по умолчанию поднимает `StoreCorruptionError` вместо возврата пустого документа; `on_unrecoverable="default"` + `preserve_corrupt=True` переименовывает битый primary в `<name>.corrupt-<ts>` и отдаёт defaults), `ensure_free_space` и `rotate_dir`; на него переведены `scripts/runtime_store.py` (raise-on-corruption для `GPTMemory_runtime.yaml`), `_save_state` / `_load_state` шести control-plane store-ов (`ai_os/agent_runtime.py`, `ai_os/cognitive_loop.py`, `planning/runtime.py`, `execution/ledger.py`, `execution/runtime.py`, `execution/snapshots.py`; они используют `default` + `preserve_corrupt`, чтобы битый operational-файл не ронял старт), экспорт `core/storage_engine.py`, snapshot-запись `scripts/export_snapshot.py` и `scripts/api_server.py` (`/snapshot/export`) с `rotate_dir` (keep 50), а также большая перезапись `memory/vector_memory.py` с free-space guard; формат хранения не менялся (SQLite / binary vectors / graph_relations split остаются P1+), известные ограничения — гонки между несколькими писателями и sub-ms окно переименования (покрыто `.bak`), verification: `development/scripts/smoke_atomic_store.py` 8/8, import-check по 13 модулям, save/load + corruption-recovery round-trip для всех шести store-ов, `python -m ai_os.manifest` без изменений, `smoke_branch_playbook.py` ok, `smoke_stabilization_replay_continuity.py` отрабатывает (`smoke_recovery_workflow.py` / `smoke_recovery_remediation.py` дают `error` и на чистом checkout — pre-existing)
 
 ### Ещё не доведено
 

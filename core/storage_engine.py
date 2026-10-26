@@ -1,7 +1,11 @@
-import json
 from pathlib import Path
 from datetime import datetime, UTC
+
+from ai_os.atomic_store import atomic_write_json, rotate_dir
 from scripts.runtime_store import load_runtime
+
+EXPORT_RETENTION = 50
+
 
 class StorageEngine:
     def __init__(self):
@@ -17,10 +21,8 @@ class StorageEngine:
             filename = f"memory_export_{stamp}.json"
 
         export_path = self.base_dir / filename
-        export_path.write_text(
-            json.dumps(runtime, ensure_ascii=False, indent=2),
-            encoding="utf-8"
-        )
+        atomic_write_json(export_path, runtime)
+        rotate_dir(self.base_dir, "memory_export_*.json", EXPORT_RETENTION)
 
         self.files.append(str(export_path))
         return str(export_path)

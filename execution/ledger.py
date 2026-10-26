@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from collections import Counter
 from pathlib import Path
 from threading import RLock
 
+from ai_os.atomic_store import atomic_write_json, read_json_resilient
 from ai_os.config import get_project_paths
 from execution.contracts import normalize_delta, utc_now
 
@@ -49,16 +49,13 @@ class OperationLedger:
         }
 
     def _load_state(self) -> None:
-        if not self.state_path.exists():
-            state = self._default_state()
-        else:
-            try:
-                state = json.loads(self.state_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                state = self._default_state()
-
-        if not isinstance(state, dict):
-            state = self._default_state()
+        state = read_json_resilient(
+            self.state_path,
+            default_factory=self._default_state,
+            expect=dict,
+            on_unrecoverable="default",
+            preserve_corrupt=True,
+        )
 
         self._entries = [item for item in state.get("entries", []) if isinstance(item, dict)]
         self._branches = {
@@ -77,14 +74,13 @@ class OperationLedger:
             self._branches["main"] = self._default_branch("main")
 
     def _save_state(self) -> None:
-        self.state_path.parent.mkdir(parents=True, exist_ok=True)
         body = {
             "entries": self._entries,
             "branches": self._branches,
             "next_entry_index": self._next_entry_index,
             "last_updated": utc_now(),
         }
-        self.state_path.write_text(json.dumps(body, ensure_ascii=False, indent=2), encoding="utf-8")
+        atomic_write_json(self.state_path, body)
 
     def _make_entry_id(self) -> str:
         entry_id = f"ledger_{utc_now().replace(':', '').replace('-', '')}_{self._next_entry_index:05d}"

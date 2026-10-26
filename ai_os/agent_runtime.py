@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from collections import Counter, deque
 from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime, UTC
 from pathlib import Path
 from threading import RLock
 
+from ai_os.atomic_store import atomic_write_json, read_json_resilient
 from ai_os.config import get_project_paths
 from ai_os.role_policy import build_dispatch_plan, dispatch_policy_for_task, evaluate_task_dispatch, rank_tasks_for_agent
 from execution.contracts import build_execution_fields
@@ -105,16 +105,13 @@ class AgentRuntime:
         return TaskRecord(**data)
 
     def _load_state(self) -> None:
-        if not self.state_path.exists():
-            state = self._default_state()
-        else:
-            try:
-                state = json.loads(self.state_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                state = self._default_state()
-
-        if not isinstance(state, dict):
-            state = self._default_state()
+        state = read_json_resilient(
+            self.state_path,
+            default_factory=self._default_state,
+            expect=dict,
+            on_unrecoverable="default",
+            preserve_corrupt=True,
+        )
 
         agents: dict[str, AgentRecord] = {}
         for payload in state.get("agents", []):
@@ -154,7 +151,6 @@ class AgentRuntime:
             self._save_state()
 
     def _save_state(self) -> None:
-        self.state_path.parent.mkdir(parents=True, exist_ok=True)
         body = {
             "agents": [asdict(agent) for agent in sorted(self._agents.values(), key=lambda item: (item.role, item.name.lower()))],
             "tasks": [asdict(task) for task in self._tasks],
@@ -162,7 +158,7 @@ class AgentRuntime:
             "next_task_id": self._next_task_id,
             "last_updated": utc_now(),
         }
-        self.state_path.write_text(json.dumps(body, ensure_ascii=False, indent=2), encoding="utf-8")
+        atomic_write_json(self.state_path, body)
 
     def _recover_after_restart(self) -> bool:
         recovered_task_ids: list[int] = []

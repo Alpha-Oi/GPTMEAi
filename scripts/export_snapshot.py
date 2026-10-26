@@ -1,7 +1,9 @@
-import json
 from pathlib import Path
 from datetime import datetime, UTC
+from ai_os.atomic_store import atomic_write_json, rotate_dir
 from scripts.runtime_store import load_runtime
+
+SNAPSHOT_RETENTION = 50
 from core.memory_engine import MemoryEngine
 from core.retrieval_engine import RetrievalEngine
 from core.temporal_engine import TemporalMemory
@@ -35,10 +37,8 @@ def main():
         "graph_relations_total": sum(len(items) for items in graph.values())
     }
 
-    snapshot_path.write_text(
-        json.dumps(snapshot, ensure_ascii=False, indent=2),
-        encoding="utf-8"
-    )
+    atomic_write_json(snapshot_path, snapshot)
+    rotate_dir(snapshot_dir, "project_snapshot_*.json", SNAPSHOT_RETENTION)
 
     print("export_snapshot OK")
     print("file:", str(snapshot_path))
