@@ -16,6 +16,8 @@
 
 ---
 
+![GPTMEAi System Architecture](docs/images/gptmeai_system_architecture.png)
+
 Локальный прототип AI OS: память, граф связей, поиск, snapshot-экспорт и операторская панель.
 
 Система состоит из control plane (ai_os), слоя планирования (planning), слоя исполнения с аудируемым ledger (execution) и ядра памяти (core). Работает локально, без внешних сервисов.
